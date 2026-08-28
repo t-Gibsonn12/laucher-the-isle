@@ -8,12 +8,12 @@ const DEFINITIONS = [
     description: 'Theo dõi trạng thái The Isle và làm cầu nối dữ liệu cho HUD/Voice.',
     requiresGame: true,
     builtIn: true,
-    version: '0.1.0'
+    version: '0.2.0'
   },
   {
     id: 'hud',
     name: 'HUD Overlay',
-    description: 'Overlay HUD trong game. Module thực tế sẽ được tích hợp ở giai đoạn HUD.',
+    description: 'HUD trong game gồm mini map, khung stat, Prime và menu tổng quan bật/tắt bằng hotkey.',
     requiresGame: true,
     builtIn: false,
     version: '0.0.0'
@@ -37,13 +37,14 @@ const DEFINITIONS = [
 ];
 
 class ModuleManager {
-  constructor({ appRoot, config = {}, onStatus, onConfigChange, logger }) {
+  constructor({ appRoot, config = {}, onStatus, onConfigChange, logger, context = {} }) {
     this.appRoot = appRoot;
     this.config = config;
     this.onStatus = onStatus;
     this.onConfigChange = onConfigChange;
     this.logger = logger;
     this.gameRunning = false;
+    this.context = { ...context };
     this.states = new Map();
     this.controllers = new Map();
   }
@@ -80,7 +81,11 @@ class ModuleManager {
       // eslint-disable-next-line global-require, import/no-dynamic-require
       const loaded = require(entry);
       const controller = typeof loaded.create === 'function'
-        ? loaded.create({ logger: this.logger })
+        ? loaded.create({
+            logger: this.logger,
+            appRoot: this.appRoot,
+            getContext: () => ({ ...this.context })
+          })
         : loaded;
       this.controllers.set(def.id, controller || {});
       const state = this.states.get(def.id);
@@ -88,6 +93,7 @@ class ModuleManager {
       state.version = loaded.version || state.version;
       state.detail = 'Đã cài đặt';
       this.states.set(def.id, state);
+      controller?.updateContext?.({ ...this.context });
     } catch (error) {
       const state = this.states.get(def.id);
       state.available = false;
@@ -97,6 +103,18 @@ class ModuleManager {
       this.states.set(def.id, state);
       this.logger?.error?.(`Không thể tải module ${def.id}`, { message: error.message });
     }
+  }
+
+  updateContext(patch = {}) {
+    this.context = { ...this.context, ...patch };
+    for (const [id, controller] of this.controllers.entries()) {
+      try {
+        controller?.updateContext?.({ ...this.context });
+      } catch (error) {
+        this.logger?.warn?.(`Module ${id} rejected runtime context`, { message: error.message });
+      }
+    }
+    return { ...this.context };
   }
 
   updateConfig(config = {}) {
@@ -165,7 +183,7 @@ class ModuleManager {
 
     try {
       const controller = this.controllers.get(id);
-      if (controller?.start) await controller.start();
+      if (controller?.start) await controller.start({ context: { ...this.context } });
       state.status = 'running';
       state.detail = state.builtIn ? 'Đang hoạt động' : 'Module đang chạy';
       state.error = null;

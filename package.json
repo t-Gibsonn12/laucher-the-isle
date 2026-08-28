@@ -1,7 +1,7 @@
 {
   "name": "dino-community-launcher",
-  "version": "0.2.0",
-  "description": "Dino Community desktop launcher for The Isle with server query, game monitoring and automatic updates.",
+  "version": "0.3.0",
+  "description": "Dino Community desktop launcher for The Isle with server query, game monitoring, system tray, module management and automatic updates.",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
@@ -37,6 +37,7 @@
       "electron/**/*",
       "src/**/*",
       "config/**/*",
+      "modules/**/*",
       "package.json"
     ],
     "win": {

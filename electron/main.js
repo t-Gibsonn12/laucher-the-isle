@@ -112,11 +112,19 @@ function createWindow() {
   mainWindow.on('maximize', () => send('window:maximized', true));
   mainWindow.on('unmaximize', () => send('window:maximized', false));
   mainWindow.on('close', (event) => {
-    if (!isQuitting && config?.runtime?.closeToTray !== false) {
+    if (isQuitting || config?.runtime?.closeToTray === false) return;
+
+    if (trayService?.isReady?.()) {
       event.preventDefault();
       hideMainWindow();
+      trayService.notifyHidden?.();
       launcherLog?.info('Launcher hidden to system tray');
+      return;
     }
+
+    // Never hide an app that has no usable tray icon: that would make the
+    // launcher appear to disappear with no obvious way for the user to restore it.
+    launcherLog?.warn('Close-to-tray skipped because tray is unavailable');
   });
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -140,7 +148,14 @@ async function handleGameStatus(status) {
     gameLog?.info(running ? 'The Isle process started' : 'The Isle process stopped', status);
 
     if (running && config?.runtime?.minimizeOnGameStart) {
-      setTimeout(() => hideMainWindow(), 700);
+      if (trayService?.isReady?.()) {
+        setTimeout(() => {
+          hideMainWindow();
+          trayService.notifyHidden?.();
+        }, 700);
+      } else {
+        launcherLog?.warn('Auto-hide on game start skipped because tray is unavailable');
+      }
     }
 
     if (!running && config?.runtime?.restoreOnGameExit) {
@@ -207,7 +222,12 @@ function initializeTray() {
       app.quit();
     }
   });
-  trayService.init();
+
+  try {
+    trayService.init();
+  } catch (error) {
+    launcherLog?.error('System tray disabled for this run', { message: error.message });
+  }
 }
 
 app.whenReady().then(() => {

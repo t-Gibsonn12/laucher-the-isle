@@ -13,13 +13,21 @@ function exists(filePath) {
   try { return fs.existsSync(filePath); } catch { return false; }
 }
 
+function executable(command) {
+  if (process.platform !== 'win32') return command;
+  if (command === 'npm') return 'npm.cmd';
+  if (command === 'npx') return 'npx.cmd';
+  return command;
+}
+
 function run(command, args, cwd, options = {}) {
-  const result = spawnSync(command, args, {
+  const result = spawnSync(executable(command), args, {
     cwd,
     stdio: options.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-    shell: process.platform === 'win32',
+    shell: false,
     encoding: 'utf8'
   });
+  if (result.error) throw result.error;
   if (result.status !== 0) {
     const detail = options.capture ? `\n${result.stderr || result.stdout || ''}` : '';
     throw new Error(`${command} ${args.join(' ')} failed with code ${result.status}.${detail}`);
@@ -29,6 +37,24 @@ function run(command, args, cwd, options = {}) {
 
 function gitHead(dir) {
   try { return run('git', ['rev-parse', 'HEAD'], dir, { capture: true }); } catch { return null; }
+}
+
+function cloneManagedSource() {
+  fs.mkdirSync(path.dirname(CACHE_ROOT), { recursive: true });
+  console.log('[HUD] Cloning exact upstream HUD source: t-Gibsonn12/isle-overlay-main');
+  try {
+    run('git', ['clone', '--depth', '1', '--branch', 'main', UPSTREAM_GIT, CACHE_ROOT], ROOT);
+    return;
+  } catch (gitError) {
+    fs.rmSync(CACHE_ROOT, { recursive: true, force: true });
+    console.warn('[HUD] HTTPS git clone failed; trying GitHub CLI authentication...');
+    try {
+      run('gh', ['repo', 'clone', 't-Gibsonn12/isle-overlay-main', CACHE_ROOT, '--', '--depth', '1', '--branch', 'main'], ROOT);
+      return;
+    } catch {
+      throw gitError;
+    }
+  }
 }
 
 function resolveSource() {
@@ -48,9 +74,7 @@ function resolveSource() {
   }
 
   if (!exists(path.join(CACHE_ROOT, '.git'))) {
-    fs.mkdirSync(path.dirname(CACHE_ROOT), { recursive: true });
-    console.log('[HUD] Cloning exact upstream HUD source: t-Gibsonn12/isle-overlay-main');
-    run('git', ['clone', '--depth', '1', '--branch', 'main', UPSTREAM_GIT, CACHE_ROOT], ROOT);
+    cloneManagedSource();
   } else if (forceSync) {
     console.log('[HUD] Updating cached upstream HUD source...');
     run('git', ['fetch', '--depth', '1', 'origin', 'main'], CACHE_ROOT);
@@ -70,6 +94,17 @@ function copyDirectory(source, destination) {
   fs.cpSync(source, destination, { recursive: true });
 }
 
+function prepareDependencies(sourceDir) {
+  // We only compile the upstream React/Vite renderer here. Native Electron runtime
+  // dependencies (uiohook/koffi) belong to the old runtime and must not be rebuilt
+  // just to reuse its HUD frontend. This also avoids node-gyp/Windows SDK noise.
+  run('npm', ['install', '--ignore-scripts'], sourceDir);
+
+  // Vite needs esbuild's platform binary. Rebuild only esbuild instead of every
+  // native package in the upstream application.
+  run('npm', ['rebuild', 'esbuild'], sourceDir);
+}
+
 function main() {
   const source = resolveSource();
   const head = gitHead(source.dir) || 'working-tree';
@@ -84,10 +119,7 @@ function main() {
 
   console.log(`[HUD] Preparing upstream HUD from ${source.dir}`);
   console.log(`[HUD] Upstream commit: ${head}`);
-
-  // The upstream project owns its React/Vite dependencies. Keeping them there
-  // prevents the launcher core dependency graph from drifting from the HUD source.
-  run('npm', ['install'], source.dir);
+  prepareDependencies(source.dir);
   run('npm', ['run', 'build'], source.dir);
 
   const dist = path.join(source.dir, 'dist');
@@ -112,7 +144,8 @@ try {
 } catch (error) {
   console.error('\n[HUD] Could not prepare upstream isle-overlay HUD.');
   console.error(error.message || error);
-  console.error('\nIf the source repository is private, make sure GitHub credentials are available to git,');
-  console.error('or set DINO_ISLE_OVERLAY_SOURCE to an existing local clone of isle-overlay-main.');
+  console.error('\nUse an existing clone by setting:');
+  console.error('  DINO_ISLE_OVERLAY_SOURCE=C:\\path\\to\\isle-overlay-main');
+  console.error('or sign in with git/GitHub CLI so the private source can be cloned.');
   process.exit(1);
 }

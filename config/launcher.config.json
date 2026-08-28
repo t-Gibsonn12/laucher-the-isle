@@ -1,0 +1,24 @@
+{
+  "server": {
+    "type": "tie",
+    "host": "",
+    "port": 7777,
+    "queryPort": null,
+    "maxPlayers": 300,
+    "refreshIntervalMs": 30000
+  },
+  "game": {
+    "steamAppId": "376210",
+    "installDirName": "The Isle",
+    "processNames": [
+      "TheIsleClient-Win64-Shipping.exe",
+      "TheIsle.exe"
+    ],
+    "monitorIntervalMs": 2500
+  },
+  "updater": {
+    "autoCheck": true,
+    "autoDownload": false,
+    "checkDelayMs": 5000
+  }
+}

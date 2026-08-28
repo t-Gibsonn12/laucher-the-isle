@@ -26,6 +26,7 @@ let moduleLog;
 let isQuitting = false;
 let gameStatusSeen = false;
 let lastGameRunning = false;
+let latestServerStatus = null;
 
 const RUNTIME_KEYS = new Set([
   'closeToTray',
@@ -122,8 +123,6 @@ function createWindow() {
       return;
     }
 
-    // Never hide an app that has no usable tray icon: that would make the
-    // launcher appear to disappear with no obvious way for the user to restore it.
     launcherLog?.warn('Close-to-tray skipped because tray is unavailable');
   });
   mainWindow.on('closed', () => {
@@ -134,6 +133,7 @@ function createWindow() {
 async function handleGameStatus(status) {
   send('game:status', status);
   trayService?.setGameStatus(status);
+  moduleManager?.updateContext({ game: status });
   await moduleManager?.reconcile(Boolean(status?.running));
 
   if (!gameStatusSeen) {
@@ -171,6 +171,11 @@ function startCoreServices() {
     appRoot: app.getAppPath(),
     config: config.modules || {},
     logger: moduleLog,
+    context: {
+      launcher: { version: app.getVersion(), packaged: app.isPackaged },
+      game: null,
+      server: latestServerStatus
+    },
     onStatus: (modules) => {
       send('modules:status', modules);
       trayService?.setModules(modules);
@@ -184,11 +189,14 @@ function startCoreServices() {
 
   gameService = new GameService(config.game || {}, (status) => handleGameStatus(status));
   serverService = new ServerService(config.server || {}, (status) => {
+    latestServerStatus = status;
     send('server:status', status);
+    moduleManager?.updateContext({ server: status });
     if (status?.configured) serverLog?.info(status.online ? 'Server query online' : 'Server query offline', status);
   });
   updaterService = new UpdaterService(config.updater || {}, (status) => {
     send('updater:status', status);
+    moduleManager?.updateContext({ updater: status });
     if (status?.status === 'error') updaterLog?.error('Updater error', status);
     else if (['available', 'downloaded'].includes(status?.status)) updaterLog?.info(`Updater ${status.status}`, status);
   });

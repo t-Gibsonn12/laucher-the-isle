@@ -22,9 +22,22 @@ function merge(base, override) {
   return output;
 }
 
+function getConfigPaths() {
+  return {
+    bundledPath: path.join(app.getAppPath(), 'config', 'launcher.config.json'),
+    userPath: path.join(app.getPath('userData'), 'launcher.config.json')
+  };
+}
+
+function writeJsonAtomic(filePath, data) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tempPath = `${filePath}.tmp`;
+  fs.writeFileSync(tempPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  fs.renameSync(tempPath, filePath);
+}
+
 function loadConfig() {
-  const bundledPath = path.join(app.getAppPath(), 'config', 'launcher.config.json');
-  const userPath = path.join(app.getPath('userData'), 'launcher.config.json');
+  const { bundledPath, userPath } = getConfigPaths();
   const defaults = readJson(bundledPath);
   const user = readJson(userPath);
   const config = merge(defaults, user);
@@ -34,15 +47,18 @@ function loadConfig() {
   if (process.env.DINO_QUERY_PORT) config.server.queryPort = Number(process.env.DINO_QUERY_PORT);
 
   try {
-    if (!fs.existsSync(userPath)) {
-      fs.mkdirSync(path.dirname(userPath), { recursive: true });
-      fs.writeFileSync(userPath, JSON.stringify(config, null, 2), 'utf8');
-    }
+    if (!fs.existsSync(userPath)) writeJsonAtomic(userPath, config);
   } catch {
     // The launcher can continue with bundled defaults even if userData is not writable.
   }
 
-  return { config, userPath };
+  return { config, userPath, bundledPath };
 }
 
-module.exports = { loadConfig };
+function saveConfig(config) {
+  const { userPath } = getConfigPaths();
+  writeJsonAtomic(userPath, config);
+  return userPath;
+}
+
+module.exports = { loadConfig, saveConfig, merge, getConfigPaths };

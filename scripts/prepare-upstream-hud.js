@@ -94,10 +94,22 @@ function copyDirectory(source, destination) {
   fs.cpSync(source, destination, { recursive: true });
 }
 
+function frontendToolingReady(sourceDir) {
+  const binDir = path.join(sourceDir, 'node_modules', '.bin');
+  const vite = path.join(binDir, process.platform === 'win32' ? 'vite.cmd' : 'vite');
+  const tsc = path.join(binDir, process.platform === 'win32' ? 'tsc.cmd' : 'tsc');
+  return exists(vite) && exists(tsc) && exists(path.join(sourceDir, 'node_modules', 'esbuild'));
+}
+
 function prepareDependencies(sourceDir) {
+  if (frontendToolingReady(sourceDir)) {
+    console.log('[HUD] Reusing existing upstream frontend dependencies.');
+    return;
+  }
+
   // We only compile the upstream React/Vite renderer here. Native Electron runtime
   // dependencies (uiohook/koffi) belong to the old runtime and must not be rebuilt
-  // just to reuse its HUD frontend. This also avoids node-gyp/Windows SDK noise.
+  // just to reuse its HUD frontend. This avoids node-gyp/Windows SDK failures.
   run('npm', ['install', '--ignore-scripts'], sourceDir);
 
   // Vite needs esbuild's platform binary. Rebuild only esbuild instead of every

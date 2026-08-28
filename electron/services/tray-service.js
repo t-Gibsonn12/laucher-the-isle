@@ -1,14 +1,13 @@
 const { Menu, Tray, nativeImage } = require('electron');
 
+// Embedded PNG is intentional: Windows tray icons are more reliable with raster
+// data than SVG data URLs when running unpackaged through Electron.
+const TRAY_ICON_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACn0lEQVR4nO1bsU4DMQw1iI9AYuEf7h+6MCKh7jcwdEBib4d2R2LowNAdITGy8A/8AwsSfwHToVwuie3Ezvm4vrXXJO/52ec2CcAR88ZJzcnuHm5+qM8+3r9UWZvqJBzCGLQEURlUkrgPaSHEBqOQftq9kce7XV+hz0iIISJAjDyHMIaYIKUiFH25BnEf0kJkCxAir0ncR0iIHBGyBPDJ1yTuwxeCK8Ipd0JL5EPzc99ALAGske9QIgLZLu6gVoiH4KYEJR1IDpgKeYD++ihOQAXQ7OpqAFt/UgCrOY+BUxPIRVCD/OF1Jz5mB+p6o0VCO++3+xYuzi/R59rrddE8WFEMCqBp/e2+BQAgkacAEwhrlNAU0CAvBYo7sPWzO8FcSJOXwkAAjdz3yVPsv2iWsGiW0c85tSHVG5yRR8lAbtRd4otmCe8fz73PSwuji54DJKOvZflc8jEXVKsBHLgR96MvDZUUSEWf+voLEZe0fgfVGlCKr+9P9Tn+mgKp/MdyP+UALuHN6sB6HmDYGVZ1QIh8SZRdsXPEABBOAUrl17B1LnmAym8Ba+QBjBfBFEqJdxBzQM1eX4o8gNFGKAVJ8gBCKZAbfQ6Z7b4VJw8wogO4ZDTIAwgIYPV3PhWjOEArmjno/T9W0g5TnTAm+dAfpGJ9gEssJoalyHdQSYHN6mCSbAiqNcAVwqogg32B3DpQ421QImJsg2RynaA0BgK46lCOqk0Bqe2xowOwB6buAmz9o+0O1wK2Oxx1wH+oBZTzQuQaMDURqOtNCuCrNhUROIcnUQfUurigBWz9pBSYUj3gnhNkRdfyqbHcM8OsRshqTSg5MM3uBK2JUHpa/HhfoGQRs74x4mK2d4ZczPrWmI9Z3hsMYbY3R2OweHd49vgFSjhXmkM4Ka0AAAAASUVORK5CYII=';
+
 function createTrayImage() {
-  const svg = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-    <rect width="64" height="64" rx="14" fill="#0b120d"/>
-    <path d="M13 43c9-2 15-11 17-24 8 4 14 10 20 18-4-1-7-1-10 0 4 4 6 8 7 13-8-6-16-8-24-5-4 1-7 1-10-2z" fill="#8aa66e"/>
-    <circle cx="37" cy="25" r="2.5" fill="#e7ece5"/>
-  </svg>`;
-  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-  return nativeImage.createFromDataURL(dataUrl).resize({ width: 32, height: 32 });
+  const image = nativeImage.createFromDataURL(`data:image/png;base64,${TRAY_ICON_PNG_BASE64}`);
+  if (image.isEmpty()) throw new Error('Tray icon image could not be decoded');
+  return image.resize({ width: 24, height: 24, quality: 'best' });
 }
 
 class TrayService {
@@ -22,16 +21,41 @@ class TrayService {
     this.tray = null;
     this.gameStatus = { running: false };
     this.modules = [];
+    this.hiddenBalloonShown = false;
   }
 
   init() {
     if (this.tray) return this.tray;
-    this.tray = new Tray(createTrayImage());
-    this.tray.setToolTip('Dino Community Launcher');
-    this.tray.on('click', () => this.onShow?.());
-    this.rebuildMenu();
-    this.logger?.info?.('System tray initialized');
-    return this.tray;
+
+    try {
+      this.tray = new Tray(createTrayImage());
+      this.tray.setToolTip('Dino Community Launcher');
+      this.tray.on('click', () => this.onShow?.());
+      this.tray.on('double-click', () => this.onShow?.());
+      this.rebuildMenu();
+      this.logger?.info?.('System tray initialized', { platform: process.platform });
+      return this.tray;
+    } catch (error) {
+      this.logger?.error?.('System tray initialization failed', { message: error.message });
+      this.tray = null;
+      throw error;
+    }
+  }
+
+  notifyHidden() {
+    if (!this.tray || this.hiddenBalloonShown || process.platform !== 'win32') return;
+    this.hiddenBalloonShown = true;
+
+    try {
+      this.tray.displayBalloon({
+        title: 'Dino Community Launcher',
+        content: 'Launcher vẫn đang chạy nền. Nhấp biểu tượng ở khay hệ thống để mở lại.',
+        iconType: 'info',
+        noSound: true
+      });
+    } catch (error) {
+      this.logger?.warn?.('Could not display tray balloon', { message: error.message });
+    }
   }
 
   setGameStatus(status = {}) {

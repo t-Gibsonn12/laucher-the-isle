@@ -1,56 +1,29 @@
-# HUD module — upstream isle-overlay-main
+# HUD module — vendored from isle-overlay-main
 
-This launcher does **not** maintain a second hand-made HUD renderer.
+The launcher no longer generates or clones a second HUD implementation.
 
-The HUD frontend is built directly from the existing private repository:
+The complete HUD source used by the launcher is committed under:
 
 ```text
-t-Gibsonn12/isle-overlay-main
+modules/hud/upstream-src/
 ```
 
-That upstream project remains the source of truth for the HUD UI, including:
+It was migrated from `t-Gibsonn12/isle-overlay-main` and remains the implementation for StatsWidget, Prime, Radar/mini map, MainWindow, draggable widgets, appearance controls and the existing overlay UI.
 
-- StatsWidget / survival stats;
-- Prime panel and Prime quest list;
-- Radar / mini map;
-- MainWindow dashboard;
-- widget settings, dragging and opacity;
-- existing The Isle overlay visual system.
+`modules/hud/index.js` is only the Electron host/lifecycle adapter. `host-preload.js` exposes the compatibility bridge expected by the original HUD.
 
-## Development flow
+## Build
 
-`npm start` runs `npm run hud:prepare` first.
-
-The prepare script uses this order:
-
-1. `DINO_ISLE_OVERLAY_SOURCE` if supplied;
-2. a sibling clone named `../isle-overlay-main`;
-3. a managed clone at `.cache/isle-overlay-main`.
-
-It then runs the upstream project's own `npm install` and `npm run build`, and copies the exact Vite output into:
+`npm start`, `npm run dist` and `npm run publish` call `npm run hud:prepare` automatically. On the first run the HUD subproject installs its frontend-only dependencies and builds to:
 
 ```text
 modules/hud/upstream-dist/
 ```
 
-The generated build is intentionally ignored by Git so we do not fork or duplicate the HUD source by hand.
-
-To force-sync the latest upstream `main` when the managed cache is used:
+Force a rebuild with:
 
 ```bash
-npm run hud:sync
+npm run hud:rebuild
 ```
 
-## Launcher integration
-
-`modules/hud/index.js` is only a host/runtime adapter. It does not recreate the HUD UI. It:
-
-- creates the transparent Electron overlay window;
-- loads the upstream `dist/index.html`;
-- starts/stops with The Isle through Module Manager;
-- supplies the existing `window.isleOverlay` contract through `host-preload.js`;
-- passes launcher/game/server context to the upstream renderer;
-- keeps normal gameplay click-through;
-- uses `F8` for the upstream dashboard and `F9` to hide/show the overlay.
-
-The compatibility bridge is deliberately separated from the renderer so the original HUD source can be updated without rewriting the UI again.
+There is no runtime Git clone, no cache checkout and no hand-made replacement HUD.

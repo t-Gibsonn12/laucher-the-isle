@@ -1,0 +1,169 @@
+.accountCard,
+.accountServerList {
+  width: 100%;
+}
+
+.accountCard {
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, var(--phos) 22%);
+  border-radius: 10px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--phos) 7%, transparent), transparent 58%),
+    rgba(255, 255, 255, 0.018);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.accountCardTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.accountStateDot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--faint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--faint) 16%, transparent);
+}
+
+.accountStateDot.on {
+  background: var(--phos);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--phos) 14%, transparent),
+    0 0 12px color-mix(in srgb, var(--phos) 46%, transparent);
+}
+
+.accountIdentity {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.accountIdentity strong,
+.accountServerMeta strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.accountIdentity span,
+.accountServerMeta span {
+  overflow: hidden;
+  color: var(--faint);
+  font: 500 9px/1.4 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountStatus,
+.serverCurrentBadge {
+  flex: none;
+  padding: 4px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--faint);
+  font: 600 8px/1 var(--mono);
+  letter-spacing: 0.06em;
+}
+
+.accountStatus.on,
+.serverCurrentBadge {
+  border-color: var(--edge);
+  color: var(--phos);
+  background: color-mix(in srgb, var(--phos) 9%, transparent);
+}
+
+.accountActions {
+  display: flex;
+  margin-top: 11px;
+}
+
+.accountActions .tbtn {
+  min-width: 150px;
+}
+
+.steamLoginBtn {
+  color: var(--text);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--phos) 20%, transparent), color-mix(in srgb, var(--phos) 8%, transparent));
+  border-color: color-mix(in srgb, var(--phos) 62%, var(--line));
+  box-shadow: 0 0 18px -12px var(--phos);
+}
+
+.accountServerList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.accountServerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.012);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.accountServerRow.active {
+  border-color: color-mix(in srgb, var(--phos) 35%, var(--line));
+  background: color-mix(in srgb, var(--phos) 6%, transparent);
+}
+
+.accountServerIcon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--edge);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--phos) 9%, transparent);
+  color: var(--phos);
+  font: 700 13px/1 var(--mono);
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--phos) 7%, transparent);
+}
+
+.accountServerMeta {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.serverSwitchBtn {
+  flex: none !important;
+  white-space: nowrap;
+}
+
+.serverSwitchBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.accountServerHint {
+  max-width: 100%;
+  line-height: 1.5;
+}
+
+.accountError {
+  color: var(--danger);
+  font-size: 10px;
+}
+
+.accountQuitRow {
+  width: 100%;
+}
+
+.accountQuitRow .tbtn {
+  flex: 0 0 auto;
+}

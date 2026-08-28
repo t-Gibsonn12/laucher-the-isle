@@ -1,0 +1,51 @@
+.yetiOverviewWallet {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-width: 86px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255,171,214,.24);
+  background: linear-gradient(180deg, rgba(255,171,214,.09), rgba(255,171,214,.035));
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.yetiOverviewWalletIcon {
+  color: var(--phos);
+  font-size: 18px;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(255,171,214,.35);
+}
+
+.yetiOverviewWalletMeta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.yetiOverviewWalletLabel {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: .1em;
+}
+
+.yetiOverviewWalletValue {
+  margin-top: 1px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.idCard .yetiOverviewWallet {
+  align-self: center;
+}
+
+@media (max-width: 520px) {
+  .yetiOverviewWallet {
+    min-width: 76px;
+  }
+}

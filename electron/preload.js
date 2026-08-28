@@ -1,18 +1,33 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+function on(channel, callback) {
+  const handler = (_event, value) => callback(value);
+  ipcRenderer.on(channel, handler);
+  return () => ipcRenderer.removeListener(channel, handler);
+}
+
 contextBridge.exposeInMainWorld('launcher', {
   minimize: () => ipcRenderer.send('window:minimize'),
   toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
   close: () => ipcRenderer.send('window:close'),
 
-  onMaximized: (callback) => ipcRenderer.on('window:maximized', (_event, value) => callback(value)),
-  onGameStatus: (callback) => ipcRenderer.on('game:status', (_event, value) => callback(value)),
-  onServerStatus: (callback) => ipcRenderer.on('server:status', (_event, value) => callback(value)),
-  onUpdaterStatus: (callback) => ipcRenderer.on('updater:status', (_event, value) => callback(value)),
+  onMaximized: (callback) => on('window:maximized', callback),
+  onGameStatus: (callback) => on('game:status', callback),
+  onServerStatus: (callback) => on('server:status', callback),
+  onUpdaterStatus: (callback) => on('updater:status', callback),
+  onModulesStatus: (callback) => on('modules:status', callback),
 
   getVersion: () => ipcRenderer.invoke('app:get-version'),
   getPublicConfig: () => ipcRenderer.invoke('config:get-public'),
   openConfig: () => ipcRenderer.invoke('config:open'),
+  openLogs: () => ipcRenderer.invoke('logs:open'),
+
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  setRuntimeSetting: (key, value) => ipcRenderer.invoke('settings:set-runtime', key, value),
+
+  getModules: () => ipcRenderer.invoke('modules:get'),
+  setModuleEnabled: (id, enabled) => ipcRenderer.invoke('modules:set-enabled', id, enabled),
+  setModuleAutoStart: (id, enabled) => ipcRenderer.invoke('modules:set-autostart', id, enabled),
 
   getGameStatus: () => ipcRenderer.invoke('game:get-status'),
   detectGame: () => ipcRenderer.invoke('game:detect'),

@@ -1,24 +1,308 @@
+const fs = require('fs');
 const path = require('path');
-const { BrowserWindow, globalShortcut, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, screen } = require('electron');
 
-const version = '0.1.0';
-const MENU_HOTKEY = 'F7';
-const HUD_HOTKEY = 'F8';
-const CHANNEL_CLOSE_MENU = 'dino-hud:close-menu';
-const CHANNEL_TOGGLE_HUD = 'dino-hud:toggle-hud';
+const version = '0.4.0-upstream';
+const DASH_HOTKEY = 'F8';
+const HIDE_HOTKEY = 'F9';
+const PREFIX = 'hud-upstream:';
 
-function create({ logger, getContext } = {}) {
+function create({ logger, appRoot, getContext } = {}) {
   let overlay = null;
-  let menuOpen = false;
-  let hudVisible = true;
-  let context = getContext?.() || {};
   let started = false;
+  let visible = true;
+  let dashOpen = false;
+  let context = getContext?.() || {};
+  let settings = null;
+  let settingsPath = null;
+  const registeredHandlers = [];
 
   const log = {
-    info: (message, data) => logger?.info?.(`[HUD] ${message}`, data),
-    warn: (message, data) => logger?.warn?.(`[HUD] ${message}`, data),
-    error: (message, data) => logger?.error?.(`[HUD] ${message}`, data)
+    info: (message, data) => logger?.info?.(`[HUD upstream] ${message}`, data),
+    warn: (message, data) => logger?.warn?.(`[HUD upstream] ${message}`, data),
+    error: (message, data) => logger?.error?.(`[HUD upstream] ${message}`, data)
   };
+
+  function getDefaultSettings() {
+    return {
+      apiBaseUrl: 'https://islepilot.eu',
+      steamId: '76561198000000000',
+      overlayToken: 'dino-launcher-upstream',
+      opacity: 1,
+      layout: null,
+      panels: { stats: true, prime: true, heart: false, radar: true },
+      theme: {
+        accent: '#7cf2a6',
+        stat: { health: '#ff5a5a', stamina: '#35d6a4', food: '#ffb454', water: '#5ab6ff' }
+      },
+      radarBounds: null,
+      radarSize: 240,
+      radarRange: 1,
+      radarLabels: true,
+      radarOpen: true,
+      cursorEnabled: true,
+      cursorKey: 'Insert',
+      cursorMode: 'toggle',
+      dashKey: DASH_HOTKEY,
+      streamerMode: false,
+      compatMode: false
+    };
+  }
+
+  function loadSettings() {
+    settingsPath = path.join(app.getPath('userData'), 'hud-upstream.settings.json');
+    const defaults = getDefaultSettings();
+    try {
+      if (!fs.existsSync(settingsPath)) {
+        fs.writeFileSync(settingsPath, `${JSON.stringify(defaults, null, 2)}\n`, 'utf8');
+        return defaults;
+      }
+      const parsed = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      return { ...defaults, ...(parsed || {}), panels: { ...defaults.panels, ...(parsed?.panels || {}) } };
+    } catch (error) {
+      log.warn('Không đọc được HUD settings, dùng mặc định', { message: error.message });
+      return defaults;
+    }
+  }
+
+  function saveSettings(next) {
+    settings = { ...settings, ...(next || {}) };
+    if (next?.panels) settings.panels = { ...(settings.panels || {}), ...next.panels };
+    try {
+      fs.writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
+    } catch (error) {
+      log.warn('Không lưu được HUD settings', { message: error.message });
+    }
+    send('settings', settings);
+    return settings;
+  }
+
+  function upstreamCandidates() {
+    const cwd = process.cwd();
+    return [
+      process.env.DINO_ISLE_OVERLAY_DIST && path.resolve(process.env.DINO_ISLE_OVERLAY_DIST, 'index.html'),
+      path.join(__dirname, 'upstream-dist', 'index.html'),
+      path.join(appRoot || cwd, 'modules', 'hud', 'upstream-dist', 'index.html'),
+      path.join(cwd, '.cache', 'isle-overlay-main', 'dist', 'index.html'),
+      path.join(cwd, '..', 'isle-overlay-main', 'dist', 'index.html')
+    ].filter(Boolean);
+  }
+
+  function resolveUpstreamIndex() {
+    return upstreamCandidates().find((candidate) => fs.existsSync(candidate)) || null;
+  }
+
+  function stateSnapshot() {
+    const game = context.game || {};
+    return {
+      gameDetected: Boolean(game.running),
+      active: Boolean(game.running),
+      focused: true
+    };
+  }
+
+  function percent(value, fallback = 100) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(0, Math.min(100, n));
+  }
+
+  function playerSnapshot() {
+    const c = context.character || {};
+    const growthPct = percent(c.growth, 96);
+    const healthPct = percent(c.health, 100);
+    const staminaPct = percent(c.stamina, 82);
+    const hungerPct = percent(c.hunger, 76);
+    const thirstPct = percent(c.thirst, 88);
+    const primeItems = Array.isArray(c.prime)
+      ? c.prime
+      : [
+          { label: 'Đến Thánh địa khi còn thiếu niên', done: true },
+          { label: 'Được sinh ra từ tổ', done: true },
+          { label: 'Đạt chế độ ăn hoàn hảo', done: true },
+          { label: 'Đến vùng Di cư lớn', done: true },
+          { label: 'Đến 2 vùng Di cư', done: true },
+          { label: 'Đến 4 vùng Tuần tra', done: true },
+          { label: 'Không bao giờ bị vô sinh', done: true },
+          { label: 'Không bao giờ bị co thắt cơ', done: true },
+          { label: 'Sống sót đến khi trưởng thành', done: false },
+          { label: 'Hoàn thành một lượt tuần tra', done: false }
+        ];
+    const quests = primeItems.map((item) => ({ name: item.name || item.label || 'Điều kiện Prime', done: Boolean(item.done) }));
+    const done = quests.filter((item) => item.done).length;
+    const nutrition = c.nutrition || {};
+
+    return {
+      hasData: true,
+      steamId: settings?.steamId || '76561198000000000',
+      name: c.playerName || 'Dino Community',
+      server: context.server?.name || 'Dino Community',
+      online: Boolean(context.game?.running),
+      species: c.name || c.species || 'Triceratops',
+      female: Boolean(c.female),
+      growth: growthPct / 100,
+      health: healthPct,
+      maxHealth: 100,
+      hunger: hungerPct,
+      maxHunger: 100,
+      thirst: thirstPct,
+      maxThirst: 100,
+      stamina: staminaPct,
+      maxStamina: 100,
+      nutrition: {
+        carb: Number(nutrition.carb ?? nutrition.carbs ?? 570.7),
+        protein: Number(nutrition.protein ?? 354),
+        lipid: Number(nutrition.lipid ?? nutrition.fat ?? 874.1)
+      },
+      prime: {
+        eligible: done >= 5,
+        elder: String(c.stage || '').toLowerCase().includes('prime elder'),
+        required: 5,
+        total: quests.length,
+        done,
+        quests
+      }
+    };
+  }
+
+  function liveSnapshot() {
+    const me = playerSnapshot();
+    const p = context.character?.position || {};
+    return {
+      steamId: me.steamId,
+      hasDino: Boolean(context.game?.running),
+      growth: me.growth,
+      health: me.health,
+      maxHealth: me.maxHealth,
+      hunger: me.hunger,
+      maxHunger: me.maxHunger,
+      thirst: me.thirst,
+      maxThirst: me.maxThirst,
+      stamina: me.stamina,
+      maxStamina: me.maxStamina,
+      nutrition: me.nutrition,
+      position: {
+        x: Number(p.x ?? -43210),
+        y: Number(p.y ?? 16840),
+        z: Number(p.z ?? 240),
+        yaw: Number(p.yaw ?? 128)
+      }
+    };
+  }
+
+  function apiGet(pathname) {
+    if (pathname === '/api/overlay/me') return playerSnapshot();
+    if (pathname === '/api/overlay/tickets/summary') return { unreadTickets: 0, hasUrgent: false, staff: { assignedUnread: 0 } };
+    if (pathname === '/api/overlay/mapedit/access') return { admin: false };
+    if (pathname === '/api/overlay/admin/access') return { enabled: false };
+    if (pathname === '/api/overlay/garage') return { settings: {}, dinos: [] };
+    if (pathname === '/api/overlay/shop') return { skins: [], dinos: [], owned: [], balance: 0, currencyName: 'xu' };
+    if (pathname === '/api/overlay/tickets') return { tickets: [] };
+    if (pathname === '/api/overlay/map') {
+      return {
+        liveMapEnabled: true,
+        allowed: true,
+        calibration: {
+          a: { worldX: -100000, worldY: -100000, u: 0, v: 1 },
+          b: { worldX: 100000, worldY: 100000, u: 1, v: 0 }
+        },
+        pois: [], categories: [], markers: [], foodSpawnsEnabled: false
+      };
+    }
+    return {};
+  }
+
+  function send(name, payload) {
+    if (!overlay || overlay.isDestroyed() || overlay.webContents.isLoading()) return;
+    overlay.webContents.send(`${PREFIX}${name}`, payload);
+  }
+
+  function setMouseIgnore(ignore) {
+    if (!overlay || overlay.isDestroyed()) return false;
+    overlay.setIgnoreMouseEvents(Boolean(ignore), { forward: true });
+    return true;
+  }
+
+  function setDashOpen(next) {
+    dashOpen = Boolean(next);
+    if (overlay && !overlay.isDestroyed()) {
+      if (dashOpen && !overlay.isVisible()) overlay.showInactive();
+      setMouseIgnore(!dashOpen);
+      if (dashOpen) overlay.focus();
+      send('dash', dashOpen);
+      send('cursor', dashOpen);
+    }
+    return dashOpen;
+  }
+
+  function toggleDash() {
+    if (!visible) {
+      visible = true;
+      overlay?.showInactive();
+    }
+    setDashOpen(!dashOpen);
+  }
+
+  function toggleVisibility() {
+    visible = !visible;
+    dashOpen = false;
+    if (!overlay || overlay.isDestroyed()) return visible;
+    if (visible) {
+      overlay.showInactive();
+      setMouseIgnore(true);
+    } else {
+      overlay.hide();
+    }
+    send('dash', false);
+    send('cursor', false);
+    return visible;
+  }
+
+  function registerHandle(channel, handler) {
+    ipcMain.removeHandler(channel);
+    ipcMain.handle(channel, handler);
+    registeredHandlers.push(channel);
+  }
+
+  function registerBridge() {
+    registerHandle(`${PREFIX}getSettings`, () => settings);
+    registerHandle(`${PREFIX}setSettings`, (_event, next) => saveSettings(next));
+    registerHandle(`${PREFIX}getState`, () => stateSnapshot());
+    registerHandle(`${PREFIX}setMouseIgnore`, (_event, ignore) => setMouseIgnore(ignore));
+    registerHandle(`${PREFIX}quit`, () => toggleVisibility());
+    registerHandle(`${PREFIX}getAuth`, () => ({ steamId: settings.steamId, authed: true }));
+    registerHandle(`${PREFIX}steamLogin`, () => ({ pending: false }));
+    registerHandle(`${PREFIX}logout`, () => ({ ok: true }));
+    registerHandle(`${PREFIX}apiGet`, (_event, pathname) => apiGet(pathname));
+    registerHandle(`${PREFIX}apiPost`, () => ({ ok: true }));
+    registerHandle(`${PREFIX}apiGetFile`, () => ({ error: 'Chưa kết nối file API.' }));
+    registerHandle(`${PREFIX}getMapCatalog`, () => ({ meshes: [], blueprints: [] }));
+    registerHandle(`${PREFIX}sendLiveSkin`, () => ({ ok: true }));
+    registerHandle(`${PREFIX}recordCursorKey`, () => null);
+    registerHandle(`${PREFIX}recordDashKey`, () => DASH_HOTKEY);
+    registerHandle(`${PREFIX}setDashOpen`, (_event, open) => setDashOpen(open));
+    registerHandle(`${PREFIX}radarToggle`, () => true);
+    registerHandle(`${PREFIX}radarClose`, () => true);
+    registerHandle(`${PREFIX}radarIsOpen`, () => true);
+    registerHandle(`${PREFIX}radarGetBounds`, () => settings.radarBounds || null);
+    registerHandle(`${PREFIX}radarSetBounds`, (_event, bounds) => { saveSettings({ radarBounds: bounds }); return true; });
+    registerHandle(`${PREFIX}voiceGetSettings`, () => ({ enabled: false, autoStart: false, pttEnabled: true, pttKey: 'V' }));
+    registerHandle(`${PREFIX}voiceSetSettings`, (_event, next) => next || {});
+    registerHandle(`${PREFIX}voiceGetState`, () => ({ phase: 'disabled', running: false, configured: false }));
+    registerHandle(`${PREFIX}voicePrepare`, () => ({ phase: 'disabled', running: false, configured: false }));
+    registerHandle(`${PREFIX}voiceInstallPlugin`, () => ({ phase: 'disabled', running: false, configured: false }));
+    registerHandle(`${PREFIX}voiceStart`, () => ({ phase: 'disabled', running: false, configured: false }));
+    registerHandle(`${PREFIX}voiceStop`, () => ({ phase: 'disabled', running: false, configured: false }));
+    registerHandle(`${PREFIX}voiceRecordPttKey`, () => 'V');
+    registerHandle(`${PREFIX}voiceOpenPluginFolder`, () => '');
+    registerHandle(`${PREFIX}updaterRestart`, () => false);
+    registerHandle(`${PREFIX}updaterCheck`, () => false);
+    registerHandle(`${PREFIX}updaterGetState`, () => ({ state: 'launcher-managed' }));
+  }
+
+  function unregisterBridge() {
+    for (const channel of registeredHandlers.splice(0)) ipcMain.removeHandler(channel);
+  }
 
   function activeDisplay() {
     return screen.getPrimaryDisplay();
@@ -26,91 +310,23 @@ function create({ logger, getContext } = {}) {
 
   function syncBounds() {
     if (!overlay || overlay.isDestroyed()) return;
-    const { x, y, width, height } = activeDisplay().bounds;
-    overlay.setBounds({ x, y, width, height }, false);
-  }
-
-  function pushContext() {
-    if (!overlay || overlay.isDestroyed() || overlay.webContents.isLoading()) return;
-    overlay.webContents.send('hud:context', {
-      ...context,
-      hud: {
-        menuHotkey: MENU_HOTKEY,
-        hudHotkey: HUD_HOTKEY,
-        menuOpen,
-        visible: hudVisible,
-        version
-      }
-    });
-  }
-
-  function setInteractionMode(interactive) {
-    if (!overlay || overlay.isDestroyed()) return;
-    overlay.setIgnoreMouseEvents(!interactive, { forward: true });
-  }
-
-  function setMenuOpen(next) {
-    menuOpen = Boolean(next) && hudVisible;
-    if (!overlay || overlay.isDestroyed()) return;
-    setInteractionMode(menuOpen);
-    if (hudVisible && !overlay.isVisible()) overlay.showInactive();
-    overlay.webContents.send('hud:menu', { open: menuOpen });
-    pushContext();
-  }
-
-  function toggleMenu() {
-    if (!hudVisible) {
-      hudVisible = true;
-      overlay?.showInactive();
-    }
-    setMenuOpen(!menuOpen);
-  }
-
-  function toggleHud() {
-    hudVisible = !hudVisible;
-    menuOpen = false;
-    if (!overlay || overlay.isDestroyed()) return;
-
-    if (hudVisible) {
-      overlay.showInactive();
-      setInteractionMode(false);
-    } else {
-      overlay.hide();
-    }
-    overlay.webContents.send('hud:visibility', { visible: hudVisible });
-    overlay.webContents.send('hud:menu', { open: false });
-    pushContext();
-  }
-
-  function onCloseMenu() {
-    setMenuOpen(false);
-  }
-
-  function onToggleHud() {
-    toggleHud();
+    overlay.setBounds(activeDisplay().bounds, false);
   }
 
   function registerHotkeys() {
-    const menuRegistered = globalShortcut.register(MENU_HOTKEY, toggleMenu);
-    const hudRegistered = globalShortcut.register(HUD_HOTKEY, toggleHud);
-    if (!menuRegistered) log.warn(`Không đăng ký được hotkey ${MENU_HOTKEY}`);
-    if (!hudRegistered) log.warn(`Không đăng ký được hotkey ${HUD_HOTKEY}`);
+    if (!globalShortcut.register(DASH_HOTKEY, toggleDash)) log.warn(`Không đăng ký được ${DASH_HOTKEY}`);
+    if (!globalShortcut.register(HIDE_HOTKEY, toggleVisibility)) log.warn(`Không đăng ký được ${HIDE_HOTKEY}`);
   }
 
   function unregisterHotkeys() {
-    globalShortcut.unregister(MENU_HOTKEY);
-    globalShortcut.unregister(HUD_HOTKEY);
+    globalShortcut.unregister(DASH_HOTKEY);
+    globalShortcut.unregister(HIDE_HOTKEY);
   }
 
-  function createOverlayWindow() {
-    const display = activeDisplay();
-    const { x, y, width, height } = display.bounds;
-
+  function createOverlayWindow(indexPath) {
+    const bounds = activeDisplay().bounds;
     overlay = new BrowserWindow({
-      x,
-      y,
-      width,
-      height,
+      ...bounds,
       show: false,
       frame: false,
       transparent: true,
@@ -122,9 +338,9 @@ function create({ logger, getContext } = {}) {
       minimizable: false,
       maximizable: false,
       fullscreenable: false,
-      title: 'Dino Community HUD',
+      title: 'Dino Community HUD · upstream isle-overlay',
       webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
+        preload: path.join(__dirname, 'host-preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true
@@ -134,66 +350,64 @@ function create({ logger, getContext } = {}) {
     overlay.setMenuBarVisibility(false);
     overlay.setAlwaysOnTop(true, 'screen-saver');
     overlay.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-    overlay.setIgnoreMouseEvents(true, { forward: true });
+    setMouseIgnore(true);
 
-    overlay.loadFile(path.join(__dirname, 'overlay.html'));
+    overlay.loadFile(indexPath);
     overlay.webContents.once('did-finish-load', () => {
-      pushContext();
-      overlay.webContents.send('hud:menu', { open: false });
-      overlay.webContents.send('hud:visibility', { visible: true });
+      send('state', stateSnapshot());
+      send('auth', { steamId: settings.steamId, authed: true });
+      send('settings', settings);
+      send('live', liveSnapshot());
+      send('blocked', false);
+      send('dash', false);
+      send('cursor', false);
       overlay.showInactive();
-      log.info('HUD overlay ready', { width, height, menuHotkey: MENU_HOTKEY, hudHotkey: HUD_HOTKEY });
+      log.info('Đã nạp HUD nguyên bản từ isle-overlay-main', { indexPath, hotkey: DASH_HOTKEY });
     });
 
-    overlay.on('closed', () => {
-      overlay = null;
-    });
+    overlay.on('closed', () => { overlay = null; });
   }
 
   async function start({ context: startContext } = {}) {
     if (started && overlay && !overlay.isDestroyed()) return;
-    started = true;
     context = startContext || getContext?.() || context || {};
-    hudVisible = true;
-    menuOpen = false;
+    settings = loadSettings();
+    const indexPath = resolveUpstreamIndex();
+    if (!indexPath) {
+      throw new Error('Không tìm thấy bản build HUD upstream. Chạy: npm run hud:prepare');
+    }
 
-    createOverlayWindow();
+    started = true;
+    visible = true;
+    dashOpen = false;
+    registerBridge();
+    registerHotkeys();
+    createOverlayWindow(indexPath);
     screen.on('display-metrics-changed', syncBounds);
     screen.on('display-added', syncBounds);
     screen.on('display-removed', syncBounds);
-    ipcMain.on(CHANNEL_CLOSE_MENU, onCloseMenu);
-    ipcMain.on(CHANNEL_TOGGLE_HUD, onToggleHud);
-    registerHotkeys();
   }
 
   async function stop() {
     if (!started) return;
     started = false;
-    menuOpen = false;
     unregisterHotkeys();
-    ipcMain.removeListener(CHANNEL_CLOSE_MENU, onCloseMenu);
-    ipcMain.removeListener(CHANNEL_TOGGLE_HUD, onToggleHud);
+    unregisterBridge();
     screen.removeListener('display-metrics-changed', syncBounds);
     screen.removeListener('display-added', syncBounds);
     screen.removeListener('display-removed', syncBounds);
-
     if (overlay && !overlay.isDestroyed()) overlay.destroy();
     overlay = null;
-    log.info('HUD overlay stopped');
+    log.info('HUD upstream đã dừng');
   }
 
   function updateContext(nextContext = {}) {
     context = { ...context, ...nextContext };
-    pushContext();
+    send('state', stateSnapshot());
+    send('live', liveSnapshot());
   }
 
-  return {
-    start,
-    stop,
-    updateContext,
-    toggleMenu,
-    toggleHud
-  };
+  return { start, stop, updateContext, toggleMenu: toggleDash, toggleHud: toggleVisibility };
 }
 
 module.exports = { version, create };

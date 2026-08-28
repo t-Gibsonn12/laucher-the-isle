@@ -42,8 +42,12 @@ class TrayService {
     }
   }
 
+  isReady() {
+    return Boolean(this.tray && !this.tray.isDestroyed());
+  }
+
   notifyHidden() {
-    if (!this.tray || this.hiddenBalloonShown || process.platform !== 'win32') return;
+    if (!this.isReady() || this.hiddenBalloonShown || process.platform !== 'win32') return;
     this.hiddenBalloonShown = true;
 
     try {
@@ -69,7 +73,7 @@ class TrayService {
   }
 
   rebuildMenu() {
-    if (!this.tray) return;
+    if (!this.isReady()) return;
     const gameLabel = this.gameStatus?.running ? 'The Isle: Đang chạy' : 'The Isle: Chưa chạy';
     const moduleItems = this.modules.map((module) => ({
       label: `${module.enabled ? '✓' : '○'} ${module.name} — ${module.detail}`,

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
+    "check": "node --check electron/main.js && node --check electron/preload.js && node --check electron/services/config-service.js && node --check electron/services/game-service.js && node --check electron/services/server-service.js && node --check electron/services/updater-service.js && node --check electron/services/logger-service.js && node --check electron/services/module-manager.js && node --check electron/services/tray-service.js && node --check src/renderer.js && node --check src/settings-ui.js",
     "dist": "electron-builder --win nsis",
     "dist:dir": "electron-builder --dir",
     "publish": "electron-builder --win nsis --publish always"

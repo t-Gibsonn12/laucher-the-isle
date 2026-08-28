@@ -16,6 +16,30 @@
     ],
     "monitorIntervalMs": 2500
   },
+  "runtime": {
+    "closeToTray": true,
+    "minimizeOnGameStart": true,
+    "restoreOnGameExit": true,
+    "startWithWindows": false
+  },
+  "modules": {
+    "game-bridge": {
+      "enabled": true,
+      "autoStart": true
+    },
+    "hud": {
+      "enabled": false,
+      "autoStart": true
+    },
+    "voice": {
+      "enabled": false,
+      "autoStart": true
+    },
+    "discord": {
+      "enabled": false,
+      "autoStart": true
+    }
+  },
   "updater": {
     "autoCheck": true,
     "autoDownload": false,

@@ -1,4 +1,5 @@
 {
+  "configVersion": 4,
   "server": {
     "type": "tie",
     "host": "",
@@ -28,7 +29,7 @@
       "autoStart": true
     },
     "hud": {
-      "enabled": false,
+      "enabled": true,
       "autoStart": true
     },
     "voice": {

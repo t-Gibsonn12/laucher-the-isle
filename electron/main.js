@@ -18,6 +18,18 @@ function send(channel, payload) {
   }
 }
 
+function reloadRuntimeConfig() {
+  const loaded = loadConfig();
+  config = loaded.config;
+  configPath = loaded.userPath;
+
+  if (serverService) serverService.config = config.server || {};
+  if (gameService) gameService.config = config.game || {};
+  if (updaterService) updaterService.config = config.updater || {};
+
+  return loaded;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1680,
@@ -62,9 +74,7 @@ function startCoreServices() {
 }
 
 app.whenReady().then(() => {
-  const loaded = loadConfig();
-  config = loaded.config;
-  configPath = loaded.userPath;
+  reloadRuntimeConfig();
 
   createWindow();
   startCoreServices();
@@ -92,14 +102,18 @@ ipcMain.on('window:toggle-maximize', () => {
 ipcMain.on('window:close', () => mainWindow?.close());
 
 ipcMain.handle('app:get-version', () => app.getVersion());
-ipcMain.handle('config:get-public', () => ({
-  path: configPath,
-  serverConfigured: Boolean(config?.server?.host),
-  serverHost: config?.server?.host || '',
-  serverPort: config?.server?.port || 7777,
-  queryPort: config?.server?.queryPort || null
-}));
+ipcMain.handle('config:get-public', () => {
+  reloadRuntimeConfig();
+  return {
+    path: configPath,
+    serverConfigured: Boolean(config?.server?.host),
+    serverHost: config?.server?.host || '',
+    serverPort: config?.server?.port || 7777,
+    queryPort: config?.server?.queryPort || null
+  };
+});
 ipcMain.handle('config:open', async () => {
+  if (!configPath) reloadRuntimeConfig();
   if (!configPath) return false;
   const error = await shell.openPath(configPath);
   if (error) throw new Error(error);
@@ -109,6 +123,7 @@ ipcMain.handle('config:open', async () => {
 ipcMain.handle('game:get-status', () => gameService?.getStatus() || { installed: false, running: false });
 ipcMain.handle('game:detect', () => gameService?.emitStatus({ refreshInstallation: true }));
 ipcMain.handle('game:launch', async () => {
+  reloadRuntimeConfig();
   const status = await gameService?.getStatus({ refreshInstallation: true });
   if (status?.running) return { ok: true, alreadyRunning: true, status };
 
@@ -117,7 +132,10 @@ ipcMain.handle('game:launch', async () => {
   return { ok: true, alreadyRunning: false, status };
 });
 
-ipcMain.handle('server:query', () => serverService?.query());
+ipcMain.handle('server:query', () => {
+  reloadRuntimeConfig();
+  return serverService?.query();
+});
 
 ipcMain.handle('updater:check', () => updaterService?.check());
 ipcMain.handle('updater:download', () => updaterService?.download());

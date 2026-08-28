@@ -1,7 +1,22 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
+const { loadConfig } = require('./services/config-service');
+const { GameService } = require('./services/game-service');
+const { ServerService } = require('./services/server-service');
+const { UpdaterService } = require('./services/updater-service');
 
 let mainWindow;
+let config;
+let configPath;
+let gameService;
+let serverService;
+let updaterService;
+
+function send(channel, payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, payload);
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -28,16 +43,40 @@ function createWindow() {
     mainWindow.show();
   });
 
-  mainWindow.on('maximize', () => mainWindow.webContents.send('window:maximized', true));
-  mainWindow.on('unmaximize', () => mainWindow.webContents.send('window:maximized', false));
+  mainWindow.on('maximize', () => send('window:maximized', true));
+  mainWindow.on('unmaximize', () => send('window:maximized', false));
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+function startCoreServices() {
+  gameService = new GameService(config.game || {}, (status) => send('game:status', status));
+  serverService = new ServerService(config.server || {}, (status) => send('server:status', status));
+  updaterService = new UpdaterService(config.updater || {}, (status) => send('updater:status', status));
+
+  gameService.start();
+  serverService.start();
+  updaterService.init();
+  updaterService.scheduleAutoCheck();
 }
 
 app.whenReady().then(() => {
+  const loaded = loadConfig();
+  config = loaded.config;
+  configPath = loaded.userPath;
+
   createWindow();
+  startCoreServices();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on('before-quit', () => {
+  gameService?.stop();
+  serverService?.stop();
 });
 
 app.on('window-all-closed', () => {
@@ -53,10 +92,37 @@ ipcMain.on('window:toggle-maximize', () => {
 ipcMain.on('window:close', () => mainWindow?.close());
 
 ipcMain.handle('app:get-version', () => app.getVersion());
-ipcMain.handle('game:launch', async () => {
-  await shell.openExternal('steam://run/376210');
+ipcMain.handle('config:get-public', () => ({
+  path: configPath,
+  serverConfigured: Boolean(config?.server?.host),
+  serverHost: config?.server?.host || '',
+  serverPort: config?.server?.port || 7777,
+  queryPort: config?.server?.queryPort || null
+}));
+ipcMain.handle('config:open', async () => {
+  if (!configPath) return false;
+  const error = await shell.openPath(configPath);
+  if (error) throw new Error(error);
   return true;
 });
+
+ipcMain.handle('game:get-status', () => gameService?.getStatus() || { installed: false, running: false });
+ipcMain.handle('game:detect', () => gameService?.emitStatus({ refreshInstallation: true }));
+ipcMain.handle('game:launch', async () => {
+  const status = await gameService?.getStatus({ refreshInstallation: true });
+  if (status?.running) return { ok: true, alreadyRunning: true, status };
+
+  const appId = String(config?.game?.steamAppId || '376210');
+  await shell.openExternal(`steam://run/${appId}`);
+  return { ok: true, alreadyRunning: false, status };
+});
+
+ipcMain.handle('server:query', () => serverService?.query());
+
+ipcMain.handle('updater:check', () => updaterService?.check());
+ipcMain.handle('updater:download', () => updaterService?.download());
+ipcMain.handle('updater:install', () => updaterService?.install());
+
 ipcMain.handle('external:open', async (_event, url) => {
   const parsed = new URL(url);
   if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error('Unsupported protocol');

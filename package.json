@@ -1,0 +1,20 @@
+{
+  "name": "dino-community-launcher",
+  "version": "0.1.0",
+  "description": "Desktop launcher shell for The Isle community server, prepared for future HUD and proximity voice integration.",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "keywords": [
+    "the-isle",
+    "launcher",
+    "electron"
+  ],
+  "author": "Dino Community",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^39.2.7"
+  }
+}

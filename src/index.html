@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>Dino Community — The Isle Launcher</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 5h2l2 10h10l2-7H7M9 20h.01M17 20h.01"/></symbol>
+    <symbol id="i-news" viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8 4 2-1-2-4-2 .5-1.5-1.5.5-2H12l-.7 2-2 .8L7.5 6 5 8.5 6.2 10 5.5 12l-2 .7.5 4 2 .2 1.2 1.7-.8 2 3.6 1.8 1-1.8 2-.2 1.5 1.4 3.2-2.4-.7-1.9 1.1-1.7 2-.4z"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 4-7 8-7s7 2 8 7"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.7 9a2.5 2.5 0 1 1 3.6 2.2c-.9.5-1.3 1-1.3 2M12 17h.01"/></symbol>
+    <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M4 7h5V4a2 2 0 1 1 4 0v3h7v5h-3a2 2 0 1 0 0 4h3v4H4v-5h3a2 2 0 1 0 0-4H4z"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5zM10 20h4"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="2"/><rect x="4" y="14" width="16" height="6" rx="2"/><path d="M8 7h.01M8 17h.01M12 7h5M12 17h5"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><path d="M3 9h18v4H3zM5 13h14v8H5zM12 9v12M12 9H8.5A2.5 2.5 0 1 1 11 6.5zm0 0h3.5A2.5 2.5 0 1 0 13 6.5z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5c0 4-2 6-4 6s-4-2-4-6zM8 6H4c0 4 1 6 5 6M16 6h4c0 4-1 6-5 6M12 15v4M8 21h8"/></symbol>
+    <symbol id="i-steam" viewBox="0 0 24 24"><circle cx="15.5" cy="8.5" r="3.5"/><circle cx="7" cy="16" r="2.5"/><path d="m9 15 4-4M4 15l3 1 3 2"/></symbol>
+  </svg>
+
+  <div class="launcher-shell">
+    <div class="title-drag" aria-hidden="true"></div>
+    <div class="window-controls">
+      <button id="minimizeBtn" class="window-btn" aria-label="Thu nhỏ">—</button>
+      <button id="maximizeBtn" class="window-btn" aria-label="Phóng to">□</button>
+      <button id="closeBtn" class="window-btn close" aria-label="Đóng">×</button>
+    </div>
+
+    <aside class="sidebar">
+      <div class="side-brand">
+        <img src="./assets/logo-mark.svg" alt="Dino Community" />
+        <div class="side-brand-name">DINO COMMUNITY</div>
+        <div class="side-brand-sub">THE ISLE</div>
+      </div>
+
+      <nav class="side-nav" aria-label="Điều hướng">
+        <button class="nav-item active" data-section="Trang chủ"><svg><use href="#i-home"/></svg><span>TRANG CHỦ</span></button>
+        <button class="nav-item" data-section="Cửa hàng"><svg><use href="#i-cart"/></svg><span>CỬA HÀNG</span></button>
+        <button class="nav-item" data-section="Tin tức"><svg><use href="#i-news"/></svg><span>TIN TỨC</span></button>
+        <button class="nav-item" data-section="Cài đặt"><svg><use href="#i-gear"/></svg><span>CÀI ĐẶT</span></button>
+        <button class="nav-item" data-section="Tài khoản"><svg><use href="#i-user"/></svg><span>TÀI KHOẢN</span></button>
+        <button class="nav-item" data-section="Hỗ trợ"><svg><use href="#i-help"/></svg><span>HỖ TRỢ</span></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="profile-card">
+          <div class="profile-row">
+            <div class="avatar">R</div>
+            <div class="profile-copy">
+              <strong>RaptorHunter</strong>
+              <span><i></i> ONLINE</span>
+            </div>
+            <span class="level">34</span>
+          </div>
+          <button class="ghost-block">ĐĂNG XUẤT</button>
+        </div>
+        <div class="social-row" aria-label="Liên kết cộng đồng">
+          <button data-toast="Discord sẽ được gắn link sau">◉</button>
+          <button data-toast="Facebook sẽ được gắn link sau">f</button>
+          <button data-toast="YouTube sẽ được gắn link sau">▶</button>
+          <button data-toast="Website sẽ được gắn link sau">◎</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="main-brand">
+          <div class="brand-title">DINO COMMUNITY</div>
+          <div class="brand-subtitle">THE ISLE LAUNCHER</div>
+        </div>
+
+        <section class="server-status glass-card" aria-label="Trạng thái server">
+          <div class="status-copy">
+            <span>TRẠNG THÁI SERVER</span>
+            <strong><i class="online-dot"></i> ONLINE</strong>
+          </div>
+          <div class="status-metric"><strong id="playersValue">278 / 300</strong><span>NGƯỜI CHƠI</span></div>
+          <div class="status-metric"><strong id="pingValue">32<small>ms</small></strong><span>PING</span></div>
+          <button id="checkServerBtn" class="outline-btn">KIỂM TRA</button>
+        </section>
+      </header>
+
+      <div class="content-grid">
+        <section class="center-column">
+          <section class="hero-card">
+            <div class="hero-noise"></div>
+            <div class="hero-copy">
+              <div class="hero-kicker">DINO</div>
+              <div class="hero-name">COMMUNITY</div>
+              <div class="hero-tagline">SURVIVE TOGETHER</div>
+              <p>Thế giới hoang dã The Isle đang chờ bạn.<br />Sinh tồn. Tiến hóa. Thống trị.</p>
+            </div>
+            <div class="hero-actions">
+              <button id="playBtn" class="play-btn"><span>CHƠI NGAY</span><svg><use href="#i-play"/></svg></button>
+              <button id="connectBtn" class="secondary-btn"><svg><use href="#i-server"/></svg><span>KẾT NỐI SERVER</span></button>
+            </div>
+            <div class="hero-dots"><i class="active"></i><i></i><i></i><i></i></div>
+          </section>
+
+          <div class="two-panels">
+            <section class="panel announcements">
+              <div class="panel-heading"><h2><svg><use href="#i-bell"/></svg> THÔNG BÁO</h2><button data-toast="Trang thông báo đầy đủ sẽ làm ở bước sau">XEM TẤT CẢ</button></div>
+              <article class="featured-news">
+                <div class="news-thumb dino-thumb"></div>
+                <div class="news-body"><span class="badge">SỰ KIỆN</span><strong>SỰ KIỆN MÙA HÈ - NHẬN QUÀ HẤP DẪN</strong><p>Tham gia sự kiện mùa hè để nhận những phần quà cực kỳ giá trị!</p><small>20/05/2026</small></div>
+              </article>
+              <article class="featured-news compact">
+                <div class="news-thumb forest-thumb"></div>
+                <div class="news-body"><span class="badge">CẬP NHẬT</span><strong>CẬP NHẬT PHIÊN BẢN 6.5.3</strong><p>- Tối ưu hiệu năng<br />- Sửa lỗi và cải thiện gameplay</p><small>18/05/2026</small></div>
+              </article>
+            </section>
+
+            <section class="panel updates">
+              <div class="panel-heading"><h2><svg><use href="#i-spark"/></svg> TIN TỨC & CẬP NHẬT</h2><button data-toast="Trang tin tức đầy đủ sẽ làm ở bước sau">XEM TẤT CẢ</button></div>
+              <article class="update-row"><div class="update-icon trophy"><svg><use href="#i-trophy"/></svg></div><div><strong>Sự kiện Đua Top Clan tháng 5</strong><span>Tranh tài cùng clan mạnh nhất server</span><small>16/05/2026</small></div><svg class="row-action"><use href="#i-trophy"/></svg></article>
+              <article class="update-row"><div class="update-icon gear"><svg><use href="#i-gear"/></svg></div><div><strong>Bảo trì định kỳ 15/05</strong><span>Bảo trì máy chủ, tối ưu hệ thống</span><small>14/05/2026</small></div><svg class="row-action"><use href="#i-gear"/></svg></article>
+              <article class="update-row"><div class="update-icon gift"><svg><use href="#i-gift"/></svg></div><div><strong>Sự kiện Đăng nhập nhận quà</strong><span>Đăng nhập mỗi ngày để nhận quà</span><small>12/05/2026</small></div><svg class="row-action"><use href="#i-gift"/></svg></article>
+            </section>
+          </div>
+
+          <section class="patch-panel panel">
+            <div class="patch-copy">
+              <div class="panel-heading patch-heading"><h2><svg><use href="#i-puzzle"/></svg> PATCH NOTES 6.5.3</h2></div>
+              <div class="patch-cols">
+                <div><strong>CẢI TIẾN</strong><span>• Tối ưu hiệu năng game</span><span>• Cải thiện hệ thống PvP</span><span>• Nâng cấp AI quái vật</span></div>
+                <div><strong>SỬA LỖI</strong><span>• Sửa lỗi rơi vật phẩm</span><span>• Sửa lỗi kết nối trong PvP</span><span>• Sửa lỗi hiển thị HUD</span></div>
+                <button class="outline-btn small" data-toast="Patch notes chi tiết sẽ kết nối dữ liệu sau">XEM CHI TIẾT</button>
+              </div>
+            </div>
+            <div class="patch-dino" aria-hidden="true"></div>
+          </section>
+        </section>
+
+        <aside class="right-column">
+          <section class="integrations panel">
+            <div class="panel-heading"><h2><svg><use href="#i-puzzle"/></svg> TÍCH HỢP SẴN</h2></div>
+
+            <article class="feature-card hud-card">
+              <div class="feature-title"><div class="round-icon">⌖</div><div><strong>HUD TÙY CHỈNH</strong><p>Hiển thị thông tin trực quan, theo dõi trạng thái nhân vật, khung log, mini map, V.V...</p></div><span class="soon">GIAI ĐOẠN 2</span></div>
+              <div class="hud-preview">
+                <div class="mock-landscape"><div class="mountain a"></div><div class="mountain b"></div><div class="mock-dino"></div></div>
+                <div class="mock-hud-left"><span><i style="width:78%"></i></span><span><i style="width:64%"></i></span><span><i style="width:86%"></i></span><span><i style="width:51%"></i></span></div>
+                <div class="mock-map"></div>
+                <div class="mock-feed"><b>RaptorHunter</b><span>Đang ở khu vực Migration</span><span>Nhóm: Dino Community</span></div>
+              </div>
+            </article>
+
+            <article class="feature-card voice-card">
+              <div class="feature-title"><div class="round-icon"><svg><use href="#i-mic"/></svg></div><div><strong>VOICE CHAT VOIP</strong><p>Trò chuyện với người chơi khác trong game một cách dễ dàng và chân thực.</p></div><span class="soon">GIAI ĐOẠN 3</span></div>
+              <div class="voice-list">
+                <div class="voice-user active"><span class="mini-avatar">R</span><b>RaptorHunter</b><i></i></div>
+                <div class="voice-user"><span class="mini-avatar">D</span><b>DinoKing</b><i></i></div>
+                <div class="voice-user"><span class="mini-avatar">T</span><b>Triceratops</b><i></i></div>
+                <div class="voice-user"><span class="mini-avatar">A</span><b>AlphaPredator</b><i></i></div>
+                <div class="voice-user"><span class="mini-avatar">S</span><b>StegoMaster</b><i></i></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="quick-settings panel">
+            <div class="panel-heading"><h2><svg><use href="#i-gear"/></svg> CÀI ĐẶT NHANH</h2></div>
+            <div class="quick-grid">
+              <div class="quick-item"><svg><use href="#i-mic"/></svg><div><span>MICROPHONE</span><strong>Microphone (Yeti X)</strong><div class="meter"><i style="width:72%"></i></div></div></div>
+              <div class="quick-item"><div class="keycap">V</div><div><span>PUSH-TO-TALK</span><strong>Phím: V</strong></div></div>
+              <div class="quick-item"><span class="volume-icon">◖))</span><div><span>VOICE VOLUME</span><strong>80%</strong><div class="meter"><i style="width:80%"></i></div></div></div>
+              <div class="account-tile"><svg><use href="#i-steam"/></svg><div><span>TÀI KHOẢN STEAM</span><strong>RaptorHunter</strong></div></div>
+              <div class="account-tile"><img src="./assets/logo-mark.svg" alt=""/><div><span>TÀI KHOẢN GAME</span><strong>RaptorHunter#1420</strong></div></div>
+            </div>
+            <button class="settings-open" data-toast="Trang cài đặt chi tiết sẽ làm ở bước sau"><span>MỞ CÀI ĐẶT</span><b>›</b></button>
+          </section>
+        </aside>
+      </div>
+
+      <footer class="launcher-footer">THE ISLE LAUNCHER <span id="versionText">v0.1.0</span></footer>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script src="./renderer.js"></script>
+</body>
+</html>

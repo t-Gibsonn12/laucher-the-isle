@@ -1,20 +1,64 @@
 {
   "name": "dino-community-launcher",
-  "version": "0.1.0",
-  "description": "Desktop launcher shell for The Isle community server, prepared for future HUD and proximity voice integration.",
+  "version": "0.2.0",
+  "description": "Dino Community desktop launcher for The Isle with server query, game monitoring and automatic updates.",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron ."
+    "dev": "electron .",
+    "dist": "electron-builder --win nsis",
+    "dist:dir": "electron-builder --dir",
+    "publish": "electron-builder --win nsis --publish always"
   },
   "keywords": [
     "the-isle",
+    "evrima",
     "launcher",
     "electron"
   ],
   "author": "Dino Community",
   "license": "MIT",
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "gamedig": "^5.3.3"
+  },
   "devDependencies": {
-    "electron": "^39.2.7"
+    "electron": "^39.2.7",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "vn.dinocommunity.launcher",
+    "productName": "Dino Community Launcher",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "config/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "DinoCommunityLauncher-${version}-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Dino Community Launcher"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "t-Gibsonn12",
+        "repo": "laucher-the-isle",
+        "releaseType": "release"
+      }
+    ]
   }
 }

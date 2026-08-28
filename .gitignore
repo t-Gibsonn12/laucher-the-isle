@@ -2,6 +2,9 @@ node_modules/
 dist/
 out/
 release/
+.cache/
+modules/hud/upstream-dist/
+modules/hud/upstream-meta.json
 *.log
 .DS_Store
 Thumbs.db

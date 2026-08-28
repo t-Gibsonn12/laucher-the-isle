@@ -13,10 +13,10 @@ const DEFINITIONS = [
   {
     id: 'hud',
     name: 'HUD Overlay',
-    description: 'HUD trong game gồm mini map, khung stat, Prime và menu tổng quan bật/tắt bằng hotkey.',
+    description: 'HUD nguyên bản từ isle-overlay-main: Stats, Prime, Radar/mini map, dashboard và cài đặt widget.',
     requiresGame: true,
     builtIn: false,
-    version: '0.0.0'
+    version: '0.4.0-upstream'
   },
   {
     id: 'voice',

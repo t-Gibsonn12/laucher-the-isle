@@ -1,3 +1,12 @@
+const settingsStyleLink = document.createElement('link');
+settingsStyleLink.rel = 'stylesheet';
+settingsStyleLink.href = './settings.css';
+document.head.appendChild(settingsStyleLink);
+
+const settingsUiScript = document.createElement('script');
+settingsUiScript.src = './settings-ui.js';
+document.body.appendChild(settingsUiScript);
+
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 

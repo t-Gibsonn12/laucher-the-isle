@@ -1,0 +1,67 @@
+/* Yeti VietNam identity overrides. Keep this file last in the CSS import order. */
+
+.bootMark {
+  min-width: 340px;
+  gap: 9px;
+  padding: 22px 40px 20px;
+  border-color: rgba(255, 171, 214, 0.34);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 171, 214, 0.13), transparent 45%),
+    linear-gradient(180deg, rgba(28, 13, 25, 0.96), rgba(12, 6, 11, 0.96));
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.48),
+    inset 0 0 0 1px rgba(255, 215, 235, 0.035),
+    0 0 42px -22px rgba(255, 171, 214, 0.58);
+}
+
+/* Hide the old THEBURNTISLE wordmark and use the Yeti server artwork instead. */
+.bootLogo {
+  width: 168px;
+  height: 168px;
+  margin: -4px 0 1px;
+  font-size: 0 !important;
+  line-height: 0;
+  letter-spacing: 0 !important;
+  color: transparent !important;
+  background: url("/yeti-logo.webp") center / contain no-repeat;
+  filter:
+    drop-shadow(0 12px 20px rgba(0, 0, 0, 0.44))
+    drop-shadow(0 0 16px rgba(255, 171, 214, 0.24));
+}
+
+.bootLogo span {
+  display: none !important;
+}
+
+.bootSub {
+  color: #ffd7ea;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+.bootBar {
+  width: 250px;
+  margin-top: 7px;
+  background: rgba(255, 171, 214, 0.13);
+}
+
+.bootBarFill {
+  background: linear-gradient(90deg, #ffabd6, #ffd9eb, #ffabd6);
+  box-shadow: 0 0 12px rgba(255, 171, 214, 0.42);
+}
+
+.bootCredit {
+  margin-top: 7px;
+  color: rgba(255, 215, 234, 0.48);
+}
+
+/* Give the Yeti name enough room in the compact top bar/status pill. */
+.brandName {
+  white-space: nowrap;
+}
+
+.statusPill {
+  min-width: 0;
+  white-space: nowrap;
+}

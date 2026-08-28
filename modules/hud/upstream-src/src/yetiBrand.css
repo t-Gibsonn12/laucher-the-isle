@@ -1,0 +1,363 @@
+:root {
+  /* Yeti pastel-pink identity */
+  --phos: #ffabd6 !important;
+  --edge: #ffabd650 !important;
+  --phos-dim: #ffabd68f !important;
+
+  /* Dark pastel-pink surfaces */
+  --bg: #09060a;
+  --panel: #110a10;
+  --panel-2: #1a1018;
+  --raise: #251722;
+  --track: #0d080c;
+  --line: #503043;
+  --line-soft: #3d263480;
+
+  /* Typography */
+  --text: #fff3fa;
+  --muted: #cfb0c2;
+  --faint: #927486;
+
+  /* Semantic accents */
+  --danger: #ff7fa8;
+  --amber: #ffd0b1;
+
+  --shadow:
+    0 28px 78px -24px rgba(0, 0, 0, 0.94),
+    0 0 0 1px rgba(255, 171, 214, 0.075),
+    0 0 34px -24px rgba(255, 171, 214, 0.5);
+}
+
+/* Browser demo canvas */
+html.browser-demo,
+html.browser-demo body,
+html.browser-demo #root {
+  background:
+    radial-gradient(circle at 17% 14%, rgba(255, 171, 214, 0.22), transparent 34%),
+    radial-gradient(circle at 84% 72%, rgba(205, 120, 166, 0.14), transparent 42%),
+    radial-gradient(circle at 52% 112%, rgba(255, 219, 237, 0.1), transparent 36%),
+    linear-gradient(145deg, #0b070b, #050305 62%, #090509);
+}
+
+html.browser-demo body::after {
+  background: rgba(17, 9, 15, 0.94);
+  border-color: rgba(255, 171, 214, 0.38);
+  color: #ffabd6;
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.42),
+    0 0 22px rgba(255, 171, 214, 0.08);
+}
+
+/* Modal dim layer */
+.settingsBackdrop {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 171, 214, 0.055), transparent 42%),
+    rgba(7, 3, 7, 0.8);
+  backdrop-filter: blur(9px) saturate(120%);
+}
+
+/* Main glass panels */
+.frame,
+.mainWin,
+.hud,
+.settingsFrame {
+  border-color: color-mix(in srgb, var(--line) 72%, var(--phos) 28%);
+  box-shadow: var(--shadow);
+}
+
+.frame,
+.mainWin {
+  background:
+    linear-gradient(150deg, rgba(38, 21, 34, 0.99), rgba(14, 7, 13, 0.99) 72%),
+    var(--panel);
+  backdrop-filter: blur(10px) saturate(118%);
+}
+
+.hud {
+  background:
+    linear-gradient(150deg, rgba(36, 20, 32, 0.975), rgba(13, 7, 12, 0.975)),
+    var(--panel);
+  backdrop-filter: blur(8px) saturate(118%);
+}
+
+/* Top bars */
+.frameBar,
+.topbar {
+  background:
+    linear-gradient(180deg, rgba(255, 171, 214, 0.12), rgba(255, 171, 214, 0.018) 68%, transparent),
+    rgba(255, 255, 255, 0.008);
+  border-bottom-color: rgba(255, 171, 214, 0.17);
+}
+
+.mainWin::before {
+  background-image:
+    linear-gradient(rgba(255, 171, 214, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 171, 214, 0.045) 1px, transparent 1px);
+}
+
+.mainWin::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 171, 214, 0.75), transparent);
+  box-shadow: 0 0 18px rgba(255, 171, 214, 0.32);
+}
+
+/* Settings rail + content */
+.settingsRail {
+  background:
+    linear-gradient(180deg, rgba(43, 23, 38, 0.86), rgba(16, 8, 14, 0.66));
+  border-right-color: rgba(255, 171, 214, 0.16);
+}
+
+.settingsContent {
+  background:
+    radial-gradient(circle at 88% 0%, rgba(255, 171, 214, 0.04), transparent 32%),
+    linear-gradient(180deg, rgba(35, 18, 31, 0.15), rgba(8, 4, 7, 0.26));
+}
+
+.settingsContent::-webkit-scrollbar-thumb,
+.tabContent::-webkit-scrollbar-thumb {
+  background: rgba(255, 171, 214, 0.26);
+}
+
+.settingsRailBtn {
+  color: #ba99ab;
+  transition: color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.settingsRailBtn:hover {
+  color: #fff3fa;
+  background: rgba(255, 171, 214, 0.08);
+}
+
+.settingsRailBtn.on {
+  color: #ffd8eb;
+  background: linear-gradient(90deg, rgba(255, 171, 214, 0.18), rgba(255, 171, 214, 0.06));
+  box-shadow:
+    inset 2px 0 0 #ffabd6,
+    0 0 18px -12px rgba(255, 171, 214, 0.8);
+}
+
+/* Tabs */
+.tabBar {
+  background:
+    linear-gradient(180deg, rgba(255, 171, 214, 0.045), rgba(255, 171, 214, 0.008) 64%, rgba(0, 0, 0, 0.05));
+  border-bottom-color: rgba(255, 171, 214, 0.16);
+}
+
+.tab {
+  color: #b79aaa;
+  transition: color 0.16s ease, background 0.16s ease, text-shadow 0.16s ease;
+}
+
+.tab:hover {
+  color: #ffe4f1;
+  background: rgba(255, 171, 214, 0.045);
+}
+
+.tab.active {
+  color: #ffabd6;
+  border-bottom-color: #ffabd6;
+  background: linear-gradient(180deg, rgba(255, 171, 214, 0.075), transparent);
+  text-shadow: 0 0 15px rgba(255, 171, 214, 0.48);
+}
+
+.tabContent {
+  background:
+    radial-gradient(circle at 50% -18%, rgba(255, 171, 214, 0.045), transparent 42%),
+    linear-gradient(180deg, rgba(31, 16, 27, 0.19), rgba(7, 4, 6, 0.34));
+}
+
+/* Cards */
+.idCard,
+.primeWrap {
+  border-color: rgba(255, 171, 214, 0.16);
+  background:
+    linear-gradient(145deg, rgba(255, 171, 214, 0.07), rgba(27, 13, 23, 0.4)),
+    linear-gradient(180deg, var(--raise), var(--panel-2));
+}
+
+.avatar {
+  border-color: rgba(255, 171, 214, 0.48);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 196, 226, 0.35), rgba(255, 171, 214, 0.085) 58%, transparent);
+  box-shadow:
+    inset 0 0 23px rgba(255, 171, 214, 0.15),
+    0 0 22px -7px rgba(255, 171, 214, 0.72);
+}
+
+.avatarInitial,
+.brandMark,
+.brandCtx,
+.sectionHead,
+.badge,
+.hudTitleBadge,
+.ok,
+.q-done .qbox {
+  color: #ffabd6;
+}
+
+/* Buttons and interactive controls */
+.tbtn,
+.chip,
+.radarToggle,
+.steamBtn,
+.supportBtn,
+.addon,
+.iconBtn,
+.statusPill {
+  border-color: rgba(255, 171, 214, 0.22);
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.tbtn,
+.chip.on,
+.radarToggle,
+.steamBtn,
+.supportBtn,
+.addon {
+  background: linear-gradient(180deg, rgba(255, 171, 214, 0.13), rgba(255, 171, 214, 0.065));
+  color: #ffcbe5;
+}
+
+.tbtn:hover,
+.chip:hover,
+.radarToggle:hover,
+.steamBtn:hover,
+.supportBtn:hover,
+.addon:hover,
+.iconBtn:hover,
+.statusPill:hover {
+  border-color: rgba(255, 171, 214, 0.52);
+  background: linear-gradient(180deg, rgba(255, 171, 214, 0.22), rgba(255, 171, 214, 0.1));
+  color: #fff2f8;
+  box-shadow: 0 0 20px -12px rgba(255, 171, 214, 0.9);
+}
+
+.tbtn:active,
+.chip:active,
+.radarToggle:active,
+.steamBtn:active,
+.supportBtn:active,
+.addon:active {
+  transform: translateY(1px);
+}
+
+.tbtn.ghost {
+  background: rgba(255, 171, 214, 0.025);
+  border-color: rgba(255, 171, 214, 0.14);
+  color: #bd9cac;
+}
+
+.tbtn.ghost:hover {
+  color: #ffe4f1;
+  border-color: rgba(255, 171, 214, 0.42);
+  background: rgba(255, 171, 214, 0.08);
+}
+
+.chip {
+  background: rgba(255, 171, 214, 0.018);
+  color: #b797a8;
+}
+
+.chip.on,
+.radarToggle.on {
+  border-color: rgba(255, 171, 214, 0.45);
+  background: linear-gradient(180deg, rgba(255, 171, 214, 0.23), rgba(255, 171, 214, 0.09));
+  color: #ffd7eb;
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 232, 0.035);
+}
+
+.iconBtn {
+  background: rgba(255, 171, 214, 0.025);
+  color: #bc9bab;
+}
+
+.iconBtn.danger:hover {
+  color: #ff92b5;
+  border-color: rgba(255, 127, 168, 0.52);
+  background: rgba(255, 127, 168, 0.12);
+}
+
+/* Status pill */
+.statusPill {
+  background:
+    linear-gradient(180deg, rgba(255, 171, 214, 0.06), transparent),
+    rgba(17, 9, 15, 0.96);
+  color: #bda0b0;
+  backdrop-filter: blur(11px) saturate(120%);
+}
+
+/* Inputs / sliders */
+.vitalTrack,
+.statTrack,
+.cursorKey {
+  background: linear-gradient(180deg, #170d15, #0b060a);
+  box-shadow:
+    inset 0 1px 4px rgba(0, 0, 0, 0.72),
+    inset 0 0 0 1px rgba(255, 171, 214, 0.035);
+}
+
+.cursorKey {
+  border-color: rgba(255, 171, 214, 0.16);
+  color: #ffe8f3;
+}
+
+.range::-webkit-slider-runnable-track {
+  background: rgba(255, 171, 214, 0.28);
+}
+
+.range::-webkit-slider-thumb {
+  background: #ffabd6;
+  border-color: #1a1018;
+  box-shadow: 0 0 10px rgba(255, 171, 214, 0.42);
+}
+
+/* Gate / login */
+.gate {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 171, 214, 0.12), transparent 50%);
+}
+
+.gateMark {
+  color: #ffabd6;
+  filter: drop-shadow(0 0 14px rgba(255, 171, 214, 0.48));
+}
+
+.steamBtn {
+  box-shadow: 0 0 0 0 rgba(255, 171, 214, 0.35);
+}
+
+.steamBtn:hover {
+  box-shadow: 0 0 24px -7px rgba(255, 171, 214, 0.58);
+}
+
+/* Decorative pink glow */
+.brandMark,
+.avatarInitial,
+.sectionHead,
+.tab.active,
+.gateMark,
+.statusPill:hover,
+.settingsRailBtn.on,
+.badge,
+.hudTitleBadge {
+  text-shadow: 0 0 16px rgba(255, 171, 214, 0.3);
+}
+
+.dot,
+.liveDot.on,
+.sig.on {
+  background: #ffabd6;
+  box-shadow: 0 0 10px rgba(255, 171, 214, 0.62);
+}
+
+/* Keep semantic red/orange warnings readable without breaking the pastel theme */
+.iconBtn.danger,
+.mark.no,
+.sig.off {
+  --semantic-danger: #ff7fa8;
+}

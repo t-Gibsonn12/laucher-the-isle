@@ -1,0 +1,26 @@
+/* Gameplay widgets must never leak onto The Isle main menu / character selection.
+   The F8 dashboard and small status pill remain available so settings still work. */
+html.yeti-gameplay-hidden .panel:has(> .statsWidget),
+html.yeti-gameplay-hidden .panel:has(> .primeFrame),
+html.yeti-gameplay-hidden .panel:has(> .radarPanel),
+html.yeti-gameplay-hidden .heartHud {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: none !important;
+}
+
+/* The optional separate radar window should also disappear outside a live dino session. */
+html.yeti-radar-context.yeti-gameplay-hidden #root {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html.yeti-gameplay-active .panel:has(> .statsWidget),
+html.yeti-gameplay-active .panel:has(> .primeFrame),
+html.yeti-gameplay-active .panel:has(> .radarPanel),
+html.yeti-gameplay-active .heartHud,
+html.yeti-radar-context.yeti-gameplay-active #root {
+  visibility: visible;
+}

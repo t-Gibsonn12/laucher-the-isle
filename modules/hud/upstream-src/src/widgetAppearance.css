@@ -1,0 +1,281 @@
+:root {
+  --yeti-widget-bg-alpha: 0.34;
+  --yeti-widget-scale: 1;
+}
+
+.panel:has(> .statsWidget),
+.panel:has(> .primeFrame) {
+  transform: scale(var(--yeti-widget-scale));
+  transform-origin: top left;
+}
+
+.statsWidget,
+.primeFrame {
+  background: linear-gradient(
+    180deg,
+    rgba(43, 16, 35, var(--yeti-widget-bg-alpha)),
+    rgba(21, 8, 18, var(--yeti-widget-bg-alpha))
+  ) !important;
+  border-color: rgba(255, 171, 214, 0.56) !important;
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 171, 214, 0.07) !important;
+  backdrop-filter: blur(7px) saturate(115%);
+  -webkit-backdrop-filter: blur(7px) saturate(115%);
+}
+
+.statsWidget .hudTitle,
+.primeFrame .frameBar {
+  background: linear-gradient(180deg, rgba(255, 171, 214, 0.13), rgba(255, 171, 214, 0.025)) !important;
+}
+
+.statsWidget .hudTitleName,
+.statsWidget .hudTitleBadge,
+.statsWidget .hudLabel,
+.statsWidget .hudVal,
+.primeFrame .ttl,
+.primeFrame .badge,
+.primeFrame .frameBody,
+.primeFrame .primeList li {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 1),
+    0 0 6px rgba(0, 0, 0, 0.98);
+}
+
+/* Prime needs stronger local contrast because grass/sky shows through the transparent panel. */
+.primeFrame .frameBody {
+  color: rgba(255, 247, 251, 0.98);
+}
+
+.primeFrame .frameBody > .ok,
+.primeFrame .frameBody > .muted {
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: rgba(6, 3, 7, 0.24);
+}
+
+.primeFrame .primeList {
+  gap: 3px;
+}
+
+.primeFrame .primeList li {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(5, 2, 6, 0.20);
+  font-weight: 700;
+  line-height: 1.22;
+}
+
+.primeFrame .primeList li.q-done {
+  color: #a2f7bd;
+}
+
+.primeFrame .primeList li.q-open {
+  color: rgba(255, 243, 249, 0.98);
+}
+
+.primeFrame .primeList .qbox {
+  font-weight: 900;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95));
+}
+
+/* Compact HUD: labels, bars and values share one clean horizontal line. */
+html.yeti-compact-hud .hud.statsWidget {
+  width: 326px;
+  padding: 9px 11px 10px;
+  border-radius: 9px;
+}
+
+html.yeti-compact-hud .statsWidget .hudTitle {
+  margin: -1px -1px 7px;
+  padding: 2px 1px 7px;
+}
+
+html.yeti-compact-hud .statsWidget .hudTitleName {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255, 247, 251, 0.98);
+  letter-spacing: 0.15px;
+}
+
+html.yeti-compact-hud .statsWidget .hudTitleBadge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  color: #ffd6ea;
+}
+
+html.yeti-compact-hud .statsWidget .miniStat {
+  display: grid;
+  grid-template-columns: 16px 82px minmax(116px, 1fr) 46px;
+  align-items: center;
+  column-gap: 6px;
+  margin: 0 0 5px;
+  min-height: 15px;
+}
+
+html.yeti-compact-hud .statsWidget .miniStat:last-child {
+  margin-bottom: 0;
+}
+
+html.yeti-compact-hud .statsWidget .miniStat .hudTop {
+  display: contents;
+}
+
+html.yeti-compact-hud .statsWidget .miniStat .hudIcon {
+  grid-column: 1;
+  width: 16px;
+  height: 16px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
+}
+
+html.yeti-compact-hud .statsWidget .miniStat .hudLabel {
+  grid-column: 2;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  color: rgba(255, 245, 250, 0.96);
+}
+
+html.yeti-compact-hud .statsWidget .miniStat > .vitalTrack {
+  grid-column: 3;
+  grid-row: 1;
+  height: 8px;
+  min-width: 0;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.75),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+html.yeti-compact-hud .statsWidget .miniStat .hudVal {
+  grid-column: 4;
+  grid-row: 1;
+  margin-left: 0;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+}
+
+html.yeti-compact-hud .primeFrame {
+  width: 326px;
+  border-radius: 9px;
+}
+
+html.yeti-compact-hud .primeFrame .frameBar {
+  min-height: 29px;
+  padding: 6px 9px;
+}
+
+html.yeti-compact-hud .primeFrame .ttl,
+html.yeti-compact-hud .primeFrame .badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255, 242, 249, 0.98);
+}
+
+html.yeti-compact-hud .primeFrame .frameBody {
+  padding: 8px 10px 9px;
+  gap: 6px;
+}
+
+html.yeti-compact-hud .primeFrame .frameBody > .ok,
+html.yeti-compact-hud .primeFrame .frameBody > .muted {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+html.yeti-compact-hud .primeFrame .primeList {
+  gap: 3px;
+}
+
+html.yeti-compact-hud .primeFrame .primeList li {
+  display: grid;
+  grid-template-columns: 13px minmax(0, 1fr);
+  align-items: start;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.22;
+  white-space: normal;
+}
+
+html.yeti-compact-hud .primeFrame .primeList .qbox {
+  line-height: 1.08;
+}
+
+[data-yeti-prime-quest-restore] {
+  animation: none !important;
+}
+
+.yetiWidgetAppearance {
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yetiWidgetTitle {
+  color: var(--phos);
+}
+
+.yetiWidgetControl {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.yetiWidgetControlHead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.yetiWidgetControlValue {
+  flex: none;
+  min-width: 42px;
+  text-align: right;
+  color: var(--phos);
+  font: 600 10px/1 var(--mono);
+}
+
+.yetiWidgetModeRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.yetiWidgetModeRow .chip {
+  min-width: 112px;
+  text-align: center;
+}
+
+.yetiWidgetPresets {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.yetiWidgetPresets .chip {
+  flex: 1 1 82px;
+  text-align: center;
+}
+
+.yetiWidgetReset {
+  align-self: flex-start;
+}

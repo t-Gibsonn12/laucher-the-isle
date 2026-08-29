@@ -2,7 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 
-const CURRENT_CONFIG_VERSION = 4;
+const CURRENT_CONFIG_VERSION = 5;
+const CURRENT_GAME_PROCESS_NAMES = [
+  'TheIsle-Win64-Shipping.exe',
+  'TheIsleClient-Win64-Shipping.exe',
+  'TheIsle.exe'
+];
 
 function readJson(filePath) {
   try {
@@ -40,11 +45,21 @@ function writeJsonAtomic(filePath, data) {
 
 function migrateUserConfig(user = {}) {
   const version = Number(user.configVersion || 0);
-  if (version >= CURRENT_CONFIG_VERSION) return { config: user, changed: false };
+  const currentNames = Array.isArray(user.game?.processNames) ? user.game.processNames : [];
+  const processNames = [...new Set([...CURRENT_GAME_PROCESS_NAMES, ...currentNames])];
+  const needsProcessMigration = CURRENT_GAME_PROCESS_NAMES.some((name) => !currentNames.includes(name));
+
+  if (version >= CURRENT_CONFIG_VERSION && !needsProcessMigration) {
+    return { config: user, changed: false };
+  }
 
   const migrated = {
     ...user,
     configVersion: CURRENT_CONFIG_VERSION,
+    game: {
+      ...(user.game || {}),
+      processNames
+    },
     modules: {
       ...(user.modules || {}),
       hud: {
@@ -85,4 +100,11 @@ function saveConfig(config) {
   return userPath;
 }
 
-module.exports = { loadConfig, saveConfig, merge, getConfigPaths, CURRENT_CONFIG_VERSION };
+module.exports = {
+  loadConfig,
+  saveConfig,
+  merge,
+  getConfigPaths,
+  CURRENT_CONFIG_VERSION,
+  CURRENT_GAME_PROCESS_NAMES
+};

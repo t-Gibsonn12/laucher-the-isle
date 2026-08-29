@@ -53,7 +53,8 @@ function main() {
   const nodeModules = path.join(SOURCE_ROOT, 'node_modules');
   if (!fs.existsSync(nodeModules)) {
     console.log('[HUD] Installing dependencies for vendored isle-overlay HUD...');
-    run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], SOURCE_ROOT);
+    const installCommand = fs.existsSync(path.join(SOURCE_ROOT, 'package-lock.json')) ? 'ci' : 'install';
+    run('npm', [installCommand, '--ignore-scripts', '--no-audit', '--no-fund'], SOURCE_ROOT);
   }
 
   const hash = fingerprint();

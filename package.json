@@ -1,6 +1,6 @@
 {
   "name": "dino-community-launcher",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Dino Community desktop launcher for The Isle with a vendored isle-overlay HUD, server query, game monitoring, system tray, module management and automatic updates.",
   "main": "electron/bootstrap.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "start": "electron .",
     "predev": "npm run hud:prepare",
     "dev": "electron .",
-    "check": "node --check electron/bootstrap.js && node --check electron/main.js && node --check electron/preload.js && node --check electron/services/config-service.js && node --check electron/services/game-service.js && node --check electron/services/server-service.js && node --check electron/services/updater-service.js && node --check electron/services/logger-service.js && node --check electron/services/module-manager.js && node --check electron/services/tray-service.js && node --check src/renderer.js && node --check src/settings-ui.js && node --check modules/hud/index.js && node --check modules/hud/host-preload.js && node --check scripts/prepare-upstream-hud.js",
+    "check": "node --check electron/bootstrap.js && node --check electron/main.js && node --check electron/preload.js && node --check electron/services/config-service.js && node --check electron/services/game-service.js && node --check electron/services/server-service.js && node --check electron/services/updater-service.js && node --check electron/services/logger-service.js && node --check electron/services/module-manager.js && node --check electron/services/tray-service.js && node --check src/renderer.js && node --check src/settings-ui.js && node --check modules/hud/index.js && node --check modules/hud/runtime-state.js && node --check modules/hud/host-preload.js && node --check scripts/prepare-upstream-hud.js",
+    "test": "node --test tests/*.test.js",
     "dist": "npm run hud:prepare && electron-builder --win nsis",
     "dist:dir": "npm run hud:prepare && electron-builder --dir",
     "publish": "npm run hud:prepare && electron-builder --win nsis --publish always",
@@ -45,6 +46,7 @@
       "src/**/*",
       "config/**/*",
       "modules/**/*",
+      "!modules/hud/upstream-src/node_modules/**/*",
       "scripts/prepare-upstream-hud.js",
       "package.json"
     ],

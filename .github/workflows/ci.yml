@@ -27,5 +27,8 @@ jobs:
       - name: Validate JavaScript syntax
         run: npm run check
 
+      - name: Test HUD runtime bridge
+        run: npm test
+
       - name: Build unpacked Windows launcher
         run: npm run dist:dir

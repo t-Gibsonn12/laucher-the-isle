@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { app, BrowserWindow, globalShortcut, ipcMain, screen } = require('electron');
+const { isGameRunning, mapSnapshot, playerPosition } = require('./runtime-state');
 
 const version = '0.4.1-upstream';
 const DASH_HOTKEY = 'F8';
@@ -16,6 +17,7 @@ function create({ logger, appRoot, getContext } = {}) {
   let settings = null;
   let settingsPath = null;
   let keepTopTimer = null;
+  let lastGameRunning = null;
   const registeredHandlers = [];
 
   const writeConsole = (level, message, data) => {
@@ -111,11 +113,10 @@ function create({ logger, appRoot, getContext } = {}) {
   }
 
   function stateSnapshot() {
-    const game = context.game || {};
     return {
-      gameDetected: Boolean(game.running),
+      gameDetected: isGameRunning(context),
       active: started,
-      focused: Boolean(game.running)
+      focused: isGameRunning(context)
     };
   }
 
@@ -155,7 +156,7 @@ function create({ logger, appRoot, getContext } = {}) {
       steamId: settings?.steamId || '76561198000000000',
       name: c.playerName || 'Dino Community',
       server: context.server?.name || 'Dino Community',
-      online: Boolean(context.game?.running),
+      online: isGameRunning(context),
       species: c.name || c.species || 'Triceratops',
       female: Boolean(c.female),
       growth: growthPct / 100,
@@ -185,10 +186,10 @@ function create({ logger, appRoot, getContext } = {}) {
 
   function liveSnapshot() {
     const me = playerSnapshot();
-    const p = context.character?.position || {};
+    const position = playerPosition(context);
     return {
       steamId: me.steamId,
-      hasDino: Boolean(context.game?.running),
+      hasDino: isGameRunning(context),
       growth: me.growth,
       health: me.health,
       maxHealth: me.maxHealth,
@@ -199,12 +200,7 @@ function create({ logger, appRoot, getContext } = {}) {
       stamina: me.stamina,
       maxStamina: me.maxStamina,
       nutrition: me.nutrition,
-      position: {
-        x: Number(p.x ?? -43210),
-        y: Number(p.y ?? 16840),
-        z: Number(p.z ?? 240),
-        yaw: Number(p.yaw ?? 128)
-      }
+      position
     };
   }
 
@@ -217,15 +213,7 @@ function create({ logger, appRoot, getContext } = {}) {
     if (pathname === '/api/overlay/shop') return { skins: [], dinos: [], owned: [], balance: 0, currencyName: 'xu' };
     if (pathname === '/api/overlay/tickets') return { tickets: [] };
     if (pathname === '/api/overlay/map') {
-      return {
-        liveMapEnabled: true,
-        allowed: true,
-        calibration: {
-          a: { worldX: -100000, worldY: -100000, u: 0, v: 1 },
-          b: { worldX: 100000, worldY: 100000, u: 1, v: 0 }
-        },
-        pois: [], categories: [], markers: [], foodSpawnsEnabled: false
-      };
+      return mapSnapshot(context, settings?.steamId);
     }
     return {};
   }
@@ -450,7 +438,12 @@ function create({ logger, appRoot, getContext } = {}) {
     started = true;
     visible = true;
     dashOpen = false;
-    log.info('Starting HUD module', { indexPath, gameRunning: Boolean(context.game?.running) });
+    lastGameRunning = isGameRunning(context);
+    log.info('Starting HUD module', {
+      indexPath,
+      gameRunning: lastGameRunning,
+      selfMarkers: mapSnapshot(context, settings?.steamId).markers.length
+    });
     registerBridge();
     registerHotkeys();
     createOverlayWindow(indexPath);
@@ -477,6 +470,12 @@ function create({ logger, appRoot, getContext } = {}) {
 
   function updateContext(nextContext = {}) {
     context = { ...context, ...nextContext };
+    const gameRunning = isGameRunning(context);
+    if (gameRunning !== lastGameRunning) {
+      const markerCount = mapSnapshot(context, settings?.steamId).markers.length;
+      log.info('Gameplay visibility evidence changed', { gameRunning, selfMarkers: markerCount });
+      lastGameRunning = gameRunning;
+    }
     send('state', stateSnapshot());
     send('live', liveSnapshot());
   }

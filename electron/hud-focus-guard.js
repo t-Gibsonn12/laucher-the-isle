@@ -16,9 +16,9 @@ if (process.platform === 'win32') {
     const HUD_TITLE_RE = /dino community hud|theburntisle overlay/i;
     const states = new WeakMap();
     let gameHwnd = null;
-    let lastGameScanAt = 0;
     let tracker = null;
     let lastActive = null;
+    let lastForegroundSignature = '';
 
     function hudState(win) {
       let state = states.get(win);
@@ -38,35 +38,40 @@ if (process.platform === 'win32') {
       }
     }
 
-    function findGameWindow(force = false) {
-      const now = Date.now();
+    // Match the ACTUAL foreground HWND, exactly like the original isle-overlay
+    // yeti-focus runtime. The previous implementation cached the first matching
+    // The Isle top-level window and compared HWND identity. Evrima can expose
+    // more than one matching window during startup, causing the real game window
+    // to be rejected and the HUD to stay hidden forever.
+    function foregroundGameWindow() {
       try {
-        if (gameHwnd && !nw.IsWindow(gameHwnd)) gameHwnd = null;
-        if (!gameHwnd && (force || now - lastGameScanAt >= 1500)) {
-          lastGameScanAt = now;
-          gameHwnd = nw.findWindow((title, imagePath) => GAME_WINDOW_RE.test(title) || GAME_WINDOW_RE.test(imagePath));
-        }
+        const foreground = nw.GetForegroundWindow();
+        if (!foreground) return null;
+        const pid = nw.windowPid(foreground);
+        const title = String(nw.windowTitle(foreground) || '');
+        const imagePath = String(nw.processImagePath(pid) || '');
+        if (!GAME_WINDOW_RE.test(title) && !GAME_WINDOW_RE.test(imagePath)) return null;
+        gameHwnd = foreground;
+        return { hwnd: foreground, pid, title, imagePath };
       } catch {
-        gameHwnd = null;
+        return null;
       }
-      return gameHwnd;
     }
 
     function isGameForeground() {
-      const hwnd = findGameWindow();
-      if (!hwnd) return false;
-      try {
-        const foreground = nw.GetForegroundWindow();
-        return Boolean(foreground && nw.isSameWindow(foreground, hwnd));
-      } catch {
-        return false;
-      }
+      return Boolean(foregroundGameWindow());
     }
 
     function gameBounds() {
-      const hwnd = findGameWindow();
-      if (!hwnd) return null;
+      const active = foregroundGameWindow();
+      let hwnd = active?.hwnd || gameHwnd;
       try {
+        if (hwnd && !nw.IsWindow(hwnd)) hwnd = null;
+        if (!hwnd) {
+          hwnd = nw.findWindow((title, imagePath) => GAME_WINDOW_RE.test(title) || GAME_WINDOW_RE.test(imagePath));
+          if (hwnd) gameHwnd = hwnd;
+        }
+        if (!hwnd) return null;
         const bounds = nw.windowBounds(hwnd);
         if (!bounds || bounds.width <= 0 || bounds.height <= 0) return null;
         return bounds;
@@ -121,7 +126,7 @@ if (process.platform === 'win32') {
       if (!isHudWindow(this)) return originalFocus.apply(this, args);
       if (!isGameForeground()) return;
 
-      // Keep keyboard focus in The Isle while F8 enables mouse interaction on the HUD.
+      // F8 enables mouse interaction but keyboard input must stay in The Isle.
       try { originalSetFocusable.call(this, false); } catch {}
       try { originalShowInactive.call(this); } catch {}
     };
@@ -190,7 +195,9 @@ if (process.platform === 'win32') {
     }
 
     function tick() {
-      const active = isGameForeground();
+      const foreground = foregroundGameWindow();
+      const active = Boolean(foreground);
+
       for (const win of BrowserWindow.getAllWindows()) {
         if (isHudWindow(win)) syncHudWindow(win, active);
       }
@@ -199,11 +206,18 @@ if (process.platform === 'win32') {
         lastActive = active;
         console.log(`[HUD focus] ${active ? 'The Isle foreground -> HUD visible' : 'The Isle not foreground -> HUD hidden'}`);
       }
+
+      if (foreground) {
+        const signature = `${foreground.pid}|${foreground.title}|${foreground.imagePath}`;
+        if (signature !== lastForegroundSignature) {
+          lastForegroundSignature = signature;
+          console.log(`[HUD focus] Matched foreground game window pid=${foreground.pid} title="${foreground.title}" image="${foreground.imagePath}"`);
+        }
+      }
     }
 
     app.whenReady().then(() => {
       if (tracker) clearInterval(tracker);
-      findGameWindow(true);
       tick();
       tracker = setInterval(tick, 200);
     });
@@ -213,7 +227,7 @@ if (process.platform === 'win32') {
       tracker = null;
     });
 
-    console.log('[HUD focus] Upstream Windows foreground guard enabled');
+    console.log('[HUD focus] Original isle-overlay foreground detection enabled');
     module.exports = { isGameForeground, gameBounds };
   }
 }

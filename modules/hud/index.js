@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { app, BrowserWindow, globalShortcut, ipcMain, screen } = require('electron');
 
-const version = '0.4.0-upstream';
+const version = '0.4.1-upstream';
 const DASH_HOTKEY = 'F8';
 const HIDE_HOTKEY = 'F9';
 const PREFIX = 'hud-upstream:';
@@ -15,17 +15,35 @@ function create({ logger, appRoot, getContext } = {}) {
   let context = getContext?.() || {};
   let settings = null;
   let settingsPath = null;
+  let keepTopTimer = null;
   const registeredHandlers = [];
 
+  const writeConsole = (level, message, data) => {
+    const suffix = data ? ` ${JSON.stringify(data)}` : '';
+    const line = `[HUD upstream] ${message}${suffix}`;
+    if (level === 'error') console.error(line);
+    else if (level === 'warn') console.warn(line);
+    else console.log(line);
+  };
+
   const log = {
-    info: (message, data) => logger?.info?.(`[HUD upstream] ${message}`, data),
-    warn: (message, data) => logger?.warn?.(`[HUD upstream] ${message}`, data),
-    error: (message, data) => logger?.error?.(`[HUD upstream] ${message}`, data)
+    info: (message, data) => {
+      writeConsole('info', message, data);
+      logger?.info?.(`[HUD upstream] ${message}`, data);
+    },
+    warn: (message, data) => {
+      writeConsole('warn', message, data);
+      logger?.warn?.(`[HUD upstream] ${message}`, data);
+    },
+    error: (message, data) => {
+      writeConsole('error', message, data);
+      logger?.error?.(`[HUD upstream] ${message}`, data);
+    }
   };
 
   function getDefaultSettings() {
     return {
-      apiBaseUrl: 'https://islepilot.eu',
+      apiBaseUrl: 'https://yeti2.islepilot.eu',
       steamId: '76561198000000000',
       overlayToken: 'dino-launcher-upstream',
       opacity: 1,
@@ -96,8 +114,8 @@ function create({ logger, appRoot, getContext } = {}) {
     const game = context.game || {};
     return {
       gameDetected: Boolean(game.running),
-      active: Boolean(game.running),
-      focused: true
+      active: started,
+      focused: Boolean(game.running)
     };
   }
 
@@ -228,9 +246,14 @@ function create({ logger, appRoot, getContext } = {}) {
     if (overlay && !overlay.isDestroyed()) {
       if (dashOpen && !overlay.isVisible()) overlay.showInactive();
       setMouseIgnore(!dashOpen);
-      if (dashOpen) overlay.focus();
+      if (dashOpen) {
+        overlay.setAlwaysOnTop(true, 'screen-saver');
+        overlay.moveTop();
+        overlay.focus();
+      }
       send('dash', dashOpen);
       send('cursor', dashOpen);
+      log.info(`Dashboard ${dashOpen ? 'ON' : 'OFF'} (${DASH_HOTKEY})`);
     }
     return dashOpen;
   }
@@ -249,12 +272,15 @@ function create({ logger, appRoot, getContext } = {}) {
     if (!overlay || overlay.isDestroyed()) return visible;
     if (visible) {
       overlay.showInactive();
+      overlay.setAlwaysOnTop(true, 'screen-saver');
+      overlay.moveTop();
       setMouseIgnore(true);
     } else {
       overlay.hide();
     }
     send('dash', false);
     send('cursor', false);
+    log.info(`HUD ${visible ? 'VISIBLE' : 'HIDDEN'} (${HIDE_HOTKEY})`);
     return visible;
   }
 
@@ -314,8 +340,11 @@ function create({ logger, appRoot, getContext } = {}) {
   }
 
   function registerHotkeys() {
-    if (!globalShortcut.register(DASH_HOTKEY, toggleDash)) log.warn(`Không đăng ký được ${DASH_HOTKEY}`);
-    if (!globalShortcut.register(HIDE_HOTKEY, toggleVisibility)) log.warn(`Không đăng ký được ${HIDE_HOTKEY}`);
+    const dashRegistered = globalShortcut.register(DASH_HOTKEY, toggleDash);
+    const hideRegistered = globalShortcut.register(HIDE_HOTKEY, toggleVisibility);
+    if (!dashRegistered) log.warn(`Không đăng ký được ${DASH_HOTKEY}`);
+    if (!hideRegistered) log.warn(`Không đăng ký được ${HIDE_HOTKEY}`);
+    log.info('Hotkey registration', { F8: dashRegistered, F9: hideRegistered });
   }
 
   function unregisterHotkeys() {
@@ -338,12 +367,14 @@ function create({ logger, appRoot, getContext } = {}) {
       minimizable: false,
       maximizable: false,
       fullscreenable: false,
+      focusable: true,
       title: 'Dino Community HUD · upstream isle-overlay',
       webPreferences: {
         preload: path.join(__dirname, 'host-preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
-        sandbox: true
+        sandbox: false,
+        backgroundThrottling: false
       }
     });
 
@@ -352,7 +383,31 @@ function create({ logger, appRoot, getContext } = {}) {
     overlay.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     setMouseIgnore(true);
 
-    overlay.loadFile(indexPath);
+    overlay.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+      log.error('Renderer load failed', { errorCode, errorDescription, validatedURL });
+    });
+    overlay.webContents.on('render-process-gone', (_event, details) => {
+      log.error('Renderer process gone', details);
+    });
+    overlay.webContents.on('preload-error', (_event, preloadPath, error) => {
+      log.error('Preload failed', { preloadPath, message: error?.message || String(error) });
+    });
+    overlay.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+      if (message) log.info(`Renderer: ${message}`, { level, line, sourceId });
+    });
+
+    overlay.once('ready-to-show', () => {
+      if (!overlay || overlay.isDestroyed() || !visible) return;
+      overlay.showInactive();
+      overlay.setAlwaysOnTop(true, 'screen-saver');
+      overlay.moveTop();
+      log.info('Overlay ready-to-show');
+    });
+
+    overlay.loadFile(indexPath).catch((error) => {
+      log.error('loadFile failed', { message: error.message, indexPath });
+    });
+
     overlay.webContents.once('did-finish-load', () => {
       send('state', stateSnapshot());
       send('auth', { steamId: settings.steamId, authed: true });
@@ -361,11 +416,26 @@ function create({ logger, appRoot, getContext } = {}) {
       send('blocked', false);
       send('dash', false);
       send('cursor', false);
-      overlay.showInactive();
+      if (visible) {
+        overlay.showInactive();
+        overlay.setAlwaysOnTop(true, 'screen-saver');
+        overlay.moveTop();
+      }
       log.info('Đã nạp HUD nguyên bản từ isle-overlay-main', { indexPath, hotkey: DASH_HOTKEY });
     });
 
+    overlay.on('unresponsive', () => log.warn('Overlay window unresponsive'));
     overlay.on('closed', () => { overlay = null; });
+  }
+
+  function keepOverlayOnTop() {
+    if (!started || !visible || !overlay || overlay.isDestroyed()) return;
+    syncBounds();
+    if (!overlay.isVisible()) overlay.showInactive();
+    overlay.setAlwaysOnTop(true, 'screen-saver');
+    overlay.moveTop();
+    send('state', stateSnapshot());
+    send('live', liveSnapshot());
   }
 
   async function start({ context: startContext } = {}) {
@@ -380,17 +450,21 @@ function create({ logger, appRoot, getContext } = {}) {
     started = true;
     visible = true;
     dashOpen = false;
+    log.info('Starting HUD module', { indexPath, gameRunning: Boolean(context.game?.running) });
     registerBridge();
     registerHotkeys();
     createOverlayWindow(indexPath);
     screen.on('display-metrics-changed', syncBounds);
     screen.on('display-added', syncBounds);
     screen.on('display-removed', syncBounds);
+    keepTopTimer = setInterval(keepOverlayOnTop, 1000);
   }
 
   async function stop() {
     if (!started) return;
     started = false;
+    if (keepTopTimer) clearInterval(keepTopTimer);
+    keepTopTimer = null;
     unregisterHotkeys();
     unregisterBridge();
     screen.removeListener('display-metrics-changed', syncBounds);

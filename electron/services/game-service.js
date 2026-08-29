@@ -5,6 +5,12 @@ const { promisify } = require('util');
 
 const execFileAsync = promisify(execFile);
 
+const CURRENT_PROCESS_NAMES = [
+  'TheIsle-Win64-Shipping.exe',
+  'TheIsleClient-Win64-Shipping.exe',
+  'TheIsle.exe'
+];
+
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
 }
@@ -76,6 +82,7 @@ async function detectInstallation(gameConfig) {
     const installPath = path.join(library, 'steamapps', 'common', installDir);
     const exeCandidates = [
       path.join(installPath, 'TheIsle.exe'),
+      path.join(installPath, 'TheIsle', 'Binaries', 'Win64', 'TheIsle-Win64-Shipping.exe'),
       path.join(installPath, 'TheIsle', 'Binaries', 'Win64', 'TheIsleClient-Win64-Shipping.exe')
     ];
     const executable = exeCandidates.find((candidate) => fs.existsSync(candidate));
@@ -102,7 +109,9 @@ async function getRunningProcess(gameConfig) {
       maxBuffer: 2 * 1024 * 1024
     });
     const lower = stdout.toLowerCase();
-    const processName = (gameConfig.processNames || []).find((name) => lower.includes(`"${String(name).toLowerCase()}"`));
+    const configured = Array.isArray(gameConfig.processNames) ? gameConfig.processNames : [];
+    const candidates = unique([...configured, ...CURRENT_PROCESS_NAMES]);
+    const processName = candidates.find((name) => lower.includes(`"${String(name).toLowerCase()}"`));
     return { running: Boolean(processName), processName: processName || null };
   } catch {
     return { running: false, processName: null };
@@ -151,4 +160,4 @@ class GameService {
   }
 }
 
-module.exports = { GameService, detectInstallation, getRunningProcess };
+module.exports = { GameService, detectInstallation, getRunningProcess, CURRENT_PROCESS_NAMES };

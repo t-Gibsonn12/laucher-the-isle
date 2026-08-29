@@ -8,6 +8,7 @@ import { AccountSettings } from "./AccountSettings";
 import type {
   AuthInfo,
   LiveFrame,
+  MumbleStatus,
   OverlaySettings,
   OverlayState,
   OverlayTheme,
@@ -47,13 +48,13 @@ function BootScreen({ onDone }: { onDone: () => void }) {
     <div className={`boot ${leaving ? "leaving" : ""}`}>
       <div className="bootMark">
         <div className="bootLogo">
-          THEBURNT<span>ISLE</span>
+          YETI<span>VIETNAM</span>
         </div>
         <div className="bootSub">OVERLAY · v{__APP_VERSION__}</div>
         <div className="bootBar">
           <div className="bootBarFill" />
         </div>
-        <div className="bootCredit">Phát triển bởi YannikAufDie1</div>
+        <div className="bootCredit">Phát triển bởi DeAndrew Marquis</div>
       </div>
     </div>
   );
@@ -203,7 +204,43 @@ const PANELS: { key: string; label: string; soon?: boolean }[] = [
   { key: "prime", label: "PRIME" },
   { key: "heart", label: "TIM MÁU" },
   { key: "radar", label: "RADAR" },
+  { key: "voice", label: "VOICE" },
 ];
+
+function VoiceHud({
+  status,
+  talking,
+  pttKey,
+}: {
+  status: MumbleStatus | null;
+  talking: boolean;
+  pttKey: string;
+}) {
+  const connected = status?.plugin.bridgeConnected === true;
+  const ready = status?.running === true && status?.plugin.loaded === true;
+  return (
+    <div className={`voiceHud ${talking ? "talking" : connected ? "connected" : ready ? "ready" : ""}`}>
+      <div className="voiceHudBar dragHandle">
+        <span className="voiceHudDot" />
+        <span>PROXIMITY VOICE</span>
+        <span className="grip">⠿</span>
+      </div>
+      <div className="voiceHudBody">
+        <span className="voiceHudMic" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="9" y="3" width="6" height="11" rx="3" />
+            <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v3" />
+          </svg>
+        </span>
+        <span>
+          <b>{talking ? "ĐANG NÓI" : connected ? "ĐÃ KẾT NỐI" : ready ? "ĐANG CHỜ BRIDGE" : "VOICE CHƯA SẴN SÀNG"}</b>
+          <small>{connected ? "Exile Voice · server-authoritative" : "Mở launcher để kiểm tra cài đặt"}</small>
+        </span>
+        <kbd>{pttKey}</kbd>
+      </div>
+    </div>
+  );
+}
 
 function ColorRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
@@ -461,7 +498,7 @@ function SettingsPanel({
           <div className="secLabel">OBS / chế độ phát trực tiếp</div>
           <div className="hint">
             Biến overlay thành cửa sổ thông thường để OBS có thể ghi hình. Thêm nguồn
-            "Window Capture" rồi chọn "TheBurntIsle Overlay".
+            "Window Capture" rồi chọn "Yeti VietNam HUD".
           </div>
           <div className="featRow">
             <button
@@ -485,7 +522,7 @@ function SettingsPanel({
           <div className="secLabel">giao diện</div>
           <div className="presetRow">
             <button className="tbtn ghost" onClick={() => onTheme(DEFAULT_THEME)}>Mặc định</button>
-            <button className="tbtn ghost" onClick={() => onTheme(BURNT_ISLE_THEME)}>TheBurntIsle</button>
+            <button className="tbtn ghost" onClick={() => onTheme(BURNT_ISLE_THEME)}>Cam sinh tồn</button>
           </div>
           <ColorRow label="màu nhấn" value={theme.accent} onChange={(v) => onTheme({ ...theme, accent: v })} />
 
@@ -540,8 +577,8 @@ function SettingsPanel({
             onQuit={onQuit}
           />
           <div className="secLabel">giới thiệu</div>
-          <div className="hint">TheBurntIsle Overlay · v{__APP_VERSION__}</div>
-          <div className="hint">Phát triển bởi YannikAufDie1</div>
+          <div className="hint">Yeti VietNam HUD · v{__APP_VERSION__}</div>
+          <div className="hint">Phát triển bởi DeAndrew Marquis</div>
           </>)}
           </div>
         </div>
@@ -624,6 +661,8 @@ export function App() {
   const [ticketSummary, setTicketSummary] = useState({ unread: 0, urgent: false });
   const [focusSupportSignal, setFocusSupportSignal] = useState(0);
   const [blocked, setBlocked] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<MumbleStatus | null>(null);
+  const [voiceTalking, setVoiceTalking] = useState(false);
   const mounted = useRef(false);
 
   useEffect(() => {
@@ -687,6 +726,27 @@ export function App() {
   const isDino = dinoPresent && !(typeof view?.health === "number" && view.health <= 0);
 
   useEffect(() => {
+    if (!settings?.voiceEnabled) {
+      setVoiceStatus(null);
+      setVoiceTalking(false);
+      return;
+    }
+    let alive = true;
+    const tick = async () => {
+      const next = await window.isleOverlay.mumbleGetStatus();
+      if (alive) setVoiceStatus(next);
+    };
+    void tick();
+    const poll = window.setInterval(tick, 3000);
+    const offPtt = window.isleOverlay.onVoicePtt(setVoiceTalking);
+    return () => {
+      alive = false;
+      window.clearInterval(poll);
+      offPtt();
+    };
+  }, [settings?.voiceEnabled]);
+
+  useEffect(() => {
     if (mounted.current) return;
     mounted.current = true;
     void window.isleOverlay.getSettings().then((s) => {
@@ -702,7 +762,10 @@ export function App() {
     void window.isleOverlay.getState().then(setState);
     const offState = window.isleOverlay.onState(setState);
     const offAuth = window.isleOverlay.onAuthChanged(() => window.isleOverlay.getAuth().then(setAuth));
-    const offSettings = window.isleOverlay.onSettingsChanged((s) => setSettings(s));
+    const offSettings = window.isleOverlay.onSettingsChanged((s) => {
+      setSettings(s);
+      if (s.panels) setPanels((prev) => ({ ...prev, ...s.panels }));
+    });
     return () => {
       offState();
       offAuth();
@@ -758,7 +821,7 @@ export function App() {
         <div className="streamerBox">
           <div className="streamerBoxTitle">Thiết lập phát trực tiếp</div>
           <div className="streamerBoxHint">
-            OBS đã có thể ghi TheBurntIsle Overlay. Thêm nguồn Window Capture, chọn cửa sổ
+            OBS đã có thể ghi Yeti VietNam HUD. Thêm nguồn Window Capture, chọn cửa sổ
             này rồi quay lại game.
           </div>
         </div>
@@ -829,6 +892,16 @@ export function App() {
 
       {auth.authed && panels.heart && isDino ? <HeartHud me={view} /> : null}
 
+      {auth.authed && settings?.voiceEnabled && panels.voice !== false && isDino ? (
+        <DraggablePanel id="w_voice" defaultPos={{ x: 18, y: 160 }} settings={settings}>
+          <VoiceHud
+            status={voiceStatus}
+            talking={voiceTalking}
+            pttKey={settings.voicePttKey || "V"}
+          />
+        </DraggablePanel>
+      ) : null}
+
       {auth.authed && panels.radar ? (
         <DraggablePanel id="w_radar" defaultPos={{ x: 18, y: 60 }} settings={settings}>
           <RadarPanel
@@ -847,7 +920,7 @@ export function App() {
         title={mainOpen ? "Ẩn Tổng quan" : "Hiện Tổng quan"}
       >
         <span className={`sig ${state.gameDetected ? "on" : "off"}`} />
-        {mainOpen ? "TheBurntIsle" : "Tổng quan"}
+        {mainOpen ? "Yeti VietNam" : "Tổng quan"}
       </button>
     </div>
   );

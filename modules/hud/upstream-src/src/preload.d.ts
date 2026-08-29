@@ -21,55 +21,16 @@ export type OverlaySettings = {
   dashKey: string;
   streamerMode: boolean;
   compatMode: boolean;
+  voiceEnabled: boolean;
+  voiceMode: "push-to-talk" | "voice-activity";
+  voicePttKey: string;
+  voiceInputDeviceId: string | null;
+  voiceOutputVolume: number;
+  voiceMaxDistance: number;
+  minimizeLauncherOnPlay: boolean;
 };
 
 export type OverlayState = { gameDetected: boolean; active: boolean; focused?: boolean };
-
-export type VoiceSettings = {
-  enabled: boolean;
-  autoStart: boolean;
-  bridgeHost: string;
-  bridgePort: number;
-  apiKey: string;
-  mumbleHost: string;
-  mumblePort: number;
-  mumbleUsername: string;
-  mumblePassword: string;
-  mumbleChannel: string;
-  pttEnabled: boolean;
-  pttKey: string;
-  debugLog: boolean;
-  smoothing: number;
-  panSmoothing: number;
-  reconnectSec: number;
-};
-
-export type VoiceState = {
-  phase:
-    | "disabled"
-    | "not_configured"
-    | "runtime_missing"
-    | "plugin_missing"
-    | "ready"
-    | "running"
-    | "error";
-  running: boolean;
-  configured: boolean;
-  steamIdentityReady?: boolean;
-  runtimeFound: boolean;
-  packagedPluginFound: boolean;
-  installedPluginFound: boolean;
-  pid: number | null;
-  lastError: string | null;
-  lastExitCode: number | null;
-  paths: {
-    runtimeRoot: string;
-    mumbleExe: string;
-    mumbleConfig?: string;
-    pluginDir: string;
-    pluginLog: string;
-  };
-};
 
 export type PrimeQuest = { name: string; done: boolean };
 export type PlayerMe = {
@@ -182,6 +143,50 @@ export type TrollFrame = {
 export type AuthInfo = { steamId: string | null; authed: boolean };
 export type UpdaterState = { state: string; version?: string; percent?: number; message?: string };
 
+export type ExileVoiceStatus = {
+  name: string;
+  version: string;
+  sourceCommit: string;
+  sourceUrl: string;
+  installed: boolean;
+  bundled: boolean;
+  configured: boolean;
+  loaded: boolean;
+  bridgeConnected: boolean;
+  bridgeReachable: boolean;
+  clientIdentified: boolean;
+  pluginPath?: string | null;
+  logUpdatedAt?: number | null;
+};
+
+export type MumbleStatus = {
+  version: string;
+  installed: boolean;
+  executable?: string | null;
+  running: boolean;
+  supported: boolean;
+  downloadUrl?: string;
+  downloadSha256?: string;
+  plugin: ExileVoiceStatus;
+};
+
+export type LauncherStatus = {
+  platform: string;
+  supported: boolean;
+  steamInstalled: boolean;
+  gameRunning: boolean;
+  mumble: MumbleStatus;
+  voice: {
+    host: string;
+    port: number;
+    channel: string;
+    bridgeHost: string;
+    bridgePort: number;
+    engine: string;
+  };
+  appVersion: string;
+};
+
 export type ApiResult<T = unknown> = T & { error?: string; status?: number };
 
 export type IsleOverlayBridge = {
@@ -191,6 +196,48 @@ export type IsleOverlayBridge = {
   setMouseIgnore: (ignore: boolean) => Promise<void>;
   onState: (cb: (s: OverlayState) => void) => () => void;
   quit: () => Promise<void>;
+  launcherGetStatus: () => Promise<LauncherStatus>;
+  launcherLaunch: (options?: { username?: string }) => Promise<{
+    launched: boolean;
+    voice?: {
+      ok: boolean;
+      needsInstall?: boolean;
+      needsPlugin?: boolean;
+      needsPluginBuild?: boolean;
+      restartRequired?: boolean;
+      error?: string;
+    } | null;
+  }>;
+  launcherMinimize: () => Promise<void>;
+  launcherToggleMaximize: () => Promise<boolean>;
+  launcherClose: () => Promise<void>;
+  launcherOpenExternal: (url: string) => Promise<boolean>;
+  mumbleGetStatus: () => Promise<MumbleStatus>;
+  mumbleConnect: (username?: string) => Promise<{
+    ok: boolean;
+    needsInstall?: boolean;
+    needsPlugin?: boolean;
+    needsPluginBuild?: boolean;
+    restartRequired?: boolean;
+    error?: string;
+  }>;
+  mumbleDownload: () => Promise<{
+    ok: boolean;
+    started?: boolean;
+    downloaded?: boolean;
+    cached?: boolean;
+    alreadyInstalled?: boolean;
+    error?: string;
+  }>;
+  mumbleInstallPlugin: () => Promise<{
+    ok: boolean;
+    installed?: boolean;
+    restartRequired?: boolean;
+    needsPluginBuild?: boolean;
+    closeMumble?: boolean;
+    error?: string;
+  }>;
+  mumbleConfigurePlugin: () => Promise<{ ok: boolean; path?: string; error?: string }>;
   steamLogin: () => Promise<{ pending: boolean }>;
   getAuth: () => Promise<AuthInfo>;
   logout: () => Promise<void>;
@@ -206,6 +253,8 @@ export type IsleOverlayBridge = {
   sendLiveSkin: (state: Record<string, number | string>) => Promise<void>;
   recordCursorKey: () => Promise<string | null>;
   recordDashKey: () => Promise<string | null>;
+  recordVoiceKey: () => Promise<string | null>;
+  onVoicePtt: (cb: (pressed: boolean) => void) => () => void;
   setDashOpen: (open: boolean) => Promise<void>;
   onDash: (cb: (on: boolean) => void) => () => void;
   onCursor: (cb: (on: boolean) => void) => () => void;
@@ -217,16 +266,6 @@ export type IsleOverlayBridge = {
   radarGetBounds: () => Promise<{ x: number; y: number; width: number; height: number } | null>;
   radarSetBounds: (b: { x: number; y: number; width: number; height: number }) => Promise<void>;
   onRadarChanged: (cb: (d: { open: boolean }) => void) => () => void;
-  voiceGetSettings: () => Promise<VoiceSettings>;
-  voiceSetSettings: (next: Partial<VoiceSettings>) => Promise<VoiceSettings>;
-  voiceGetState: () => Promise<VoiceState>;
-  voicePrepare: () => Promise<VoiceState>;
-  voiceInstallPlugin: () => Promise<VoiceState>;
-  voiceStart: () => Promise<VoiceState>;
-  voiceStop: () => Promise<VoiceState>;
-  voiceRecordPttKey: () => Promise<string | null>;
-  voiceOpenPluginFolder: () => Promise<string>;
-  onVoiceState: (cb: (s: VoiceState) => void) => () => void;
   updaterRestart: () => Promise<boolean>;
   updaterCheck: () => Promise<boolean>;
   updaterGetState: () => Promise<UpdaterState>;

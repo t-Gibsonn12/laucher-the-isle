@@ -1105,6 +1105,105 @@ html.browser-demo body::after {
   display: block;
   overflow: visible;
 }
+
+.voiceHud {
+  width: 236px;
+  overflow: hidden;
+  border: 1px solid rgba(124, 242, 166, 0.18);
+  border-radius: 9px;
+  background: linear-gradient(145deg, rgba(8, 17, 12, 0.94), rgba(4, 9, 7, 0.96));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.38);
+  color: #dce8df;
+}
+.voiceHudBar {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border-bottom: 1px solid rgba(124, 242, 166, 0.12);
+  color: rgba(190, 213, 197, 0.66);
+  cursor: move;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.voiceHudBar .grip {
+  margin-left: auto;
+}
+.voiceHudDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #69736c;
+  box-shadow: 0 0 0 3px rgba(105, 115, 108, 0.08);
+}
+.voiceHud.connected .voiceHudDot,
+.voiceHud.talking .voiceHudDot {
+  background: #78ef70;
+  box-shadow: 0 0 8px rgba(120, 239, 112, 0.62);
+}
+.voiceHudBody {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 35px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+.voiceHudMic {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(124, 242, 166, 0.18);
+  border-radius: 50%;
+  color: #7c8c80;
+  background: rgba(124, 242, 166, 0.04);
+}
+.voiceHudMic svg {
+  width: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.7;
+}
+.voiceHud.talking .voiceHudMic {
+  color: #071108;
+  background: #78ef70;
+  box-shadow: 0 0 18px rgba(120, 239, 112, 0.45);
+}
+.voiceHudBody > span:nth-child(2) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.voiceHudBody b {
+  color: #cbd8ce;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.voiceHudBody small {
+  overflow: hidden;
+  color: #667269;
+  font-size: 8px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.voiceHudBody kbd {
+  min-width: 28px;
+  padding: 5px 6px;
+  border: 1px solid rgba(124, 242, 166, 0.2);
+  border-radius: 5px;
+  background: rgba(124, 242, 166, 0.07);
+  color: #8ff58a;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-align: center;
+}
 .hexOuter {
   fill: rgba(126, 228, 255, 0.055);
   stroke: #8fecff;

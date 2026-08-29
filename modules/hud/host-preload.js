@@ -76,6 +76,16 @@ contextBridge.exposeInMainWorld('isleOverlay', {
   voiceOpenPluginFolder: () => invoke('voiceOpenPluginFolder'),
   onVoiceState: noopListener,
 
+  // New API names used by the original Yeti HUD source. Keeping these aliases
+  // present prevents a saved voiceEnabled setting from breaking the dashboard.
+  mumbleGetStatus: () => invoke('mumbleGetStatus'),
+  mumbleConnect: (username) => invoke('mumbleConnect', username),
+  mumbleDownload: () => invoke('mumbleDownload'),
+  mumbleInstallPlugin: () => invoke('mumbleInstallPlugin'),
+  mumbleConfigurePlugin: () => invoke('mumbleConfigurePlugin'),
+  recordVoiceKey: () => invoke('recordVoiceKey'),
+  onVoicePtt: (cb) => listen('voicePtt', cb),
+
   updaterRestart: () => invoke('updaterRestart'),
   updaterCheck: () => invoke('updaterCheck'),
   updaterGetState: () => invoke('updaterGetState'),

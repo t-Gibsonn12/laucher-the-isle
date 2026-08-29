@@ -6,8 +6,6 @@ import type {
   MapCatalog,
   OverlaySettings,
   PlayerMe,
-  VoiceSettings,
-  VoiceState,
 } from "./preload";
 import { DEFAULT_PALETTE } from "./skin3d/types";
 
@@ -39,45 +37,13 @@ const defaultSettings: OverlaySettings = {
   dashKey: "F8",
   streamerMode: false,
   compatMode: false,
-};
-
-const demoVoiceSettings: VoiceSettings = {
-  enabled: true,
-  autoStart: true,
-  bridgeHost: "voice.yeti.local",
-  bridgePort: 8890,
-  apiKey: "browser-demo-key",
-  mumbleHost: "voice.yeti.local",
-  mumblePort: 64738,
-  mumbleUsername: "Duy",
-  mumblePassword: "",
-  mumbleChannel: "The Isle - Lobby",
-  pttEnabled: true,
-  pttKey: "V",
-  debugLog: false,
-  smoothing: 0.8,
-  panSmoothing: 0.95,
-  reconnectSec: 8,
-};
-
-const demoVoiceState: VoiceState = {
-  phase: "ready",
-  running: false,
-  configured: true,
-  steamIdentityReady: true,
-  runtimeFound: true,
-  packagedPluginFound: true,
-  installedPluginFound: true,
-  pid: null,
-  lastError: null,
-  lastExitCode: null,
-  paths: {
-    runtimeRoot: "C:\\Yeti\\resources\\yeti-voice",
-    mumbleExe: "C:\\Yeti\\resources\\yeti-voice\\mumble\\mumble.exe",
-    mumbleConfig: "C:\\Users\\Demo\\AppData\\Roaming\\isle-overlay\\yeti-mumble-settings.json",
-    pluginDir: "C:\\Users\\Demo\\AppData\\Roaming\\Mumble\\Mumble\\Plugins",
-    pluginLog: "C:\\Users\\Demo\\AppData\\Roaming\\Mumble\\Mumble\\Plugins\\yeti_voice.log",
-  },
+  voiceEnabled: true,
+  voiceMode: "push-to-talk",
+  voicePttKey: "V",
+  voiceInputDeviceId: null,
+  voiceOutputVolume: 0.85,
+  voiceMaxDistance: 80,
+  minimizeLauncherOnPlay: true,
 };
 
 const demoPlayer: PlayerMe = {
@@ -275,6 +241,9 @@ function apiResponse(pathname: string): unknown {
     };
   }
   if (pathname === "/api/overlay/tickets") return { tickets: [] };
+  if (pathname === "/api/overlay/server/status") {
+    return { online: true, players: 300, maxPlayers: 300, ping: 24 };
+  }
   return {};
 }
 
@@ -283,11 +252,8 @@ export function installBrowserDemoBridge(): void {
 
   document.documentElement.classList.add("browser-demo");
   let settings = loadSettings();
-  let voiceSettings = { ...demoVoiceSettings };
-  let voiceState = { ...demoVoiceState };
   const settingsListeners = new Set<(value: OverlaySettings) => void>();
   const authListeners = new Set<(value: { steamId: string | null; authed: boolean }) => void>();
-  const voiceListeners = new Set<(value: VoiceState) => void>();
 
   const persist = () => {
     localStorage.setItem("isle-overlay-browser-demo", JSON.stringify(settings));
@@ -301,7 +267,6 @@ export function installBrowserDemoBridge(): void {
     const value = authValue();
     authListeners.forEach((listener) => listener(value));
   };
-  const emitVoice = () => voiceListeners.forEach((listener) => listener(voiceState));
 
   const bridge: IsleOverlayBridge = {
     getSettings: async () => settings,
@@ -315,6 +280,68 @@ export function installBrowserDemoBridge(): void {
     setMouseIgnore: async () => {},
     onState: (cb) => delayed(cb, { gameDetected: true, active: true, focused: true }),
     quit: async () => {},
+    launcherGetStatus: async () => ({
+      platform: "win32",
+      supported: true,
+      steamInstalled: true,
+      gameRunning: false,
+      mumble: {
+        version: "1.5.915",
+        installed: true,
+        running: true,
+        supported: true,
+        plugin: {
+          name: "Exile Voice - Spatial Audio",
+          version: "0.1.0",
+          sourceCommit: "3345d4707bd6e2a29101c2046fda762010e1a57b",
+          sourceUrl: "https://github.com/AlinV2V/the-isle-exile-voice",
+          installed: true,
+          bundled: true,
+          configured: true,
+          loaded: true,
+          bridgeConnected: true,
+          bridgeReachable: true,
+          clientIdentified: true,
+        },
+      },
+      voice: {
+        host: "104.234.180.152",
+        port: 64738,
+        channel: "Yeti VietNam",
+        bridgeHost: "104.234.180.152",
+        bridgePort: 8890,
+        engine: "Exile Voice",
+      },
+      appVersion: __APP_VERSION__,
+    }),
+    launcherLaunch: async () => ({ launched: true, voice: { ok: true } }),
+    launcherMinimize: async () => {},
+    launcherToggleMaximize: async () => false,
+    launcherClose: async () => {},
+    launcherOpenExternal: async () => true,
+    mumbleGetStatus: async () => ({
+      version: "1.5.915",
+      installed: true,
+      running: true,
+      supported: true,
+      plugin: {
+        name: "Exile Voice - Spatial Audio",
+        version: "0.1.0",
+        sourceCommit: "3345d4707bd6e2a29101c2046fda762010e1a57b",
+        sourceUrl: "https://github.com/AlinV2V/the-isle-exile-voice",
+        installed: true,
+        bundled: true,
+        configured: true,
+        loaded: true,
+        bridgeConnected: true,
+        bridgeReachable: true,
+        clientIdentified: true,
+      },
+    }),
+    mumbleConnect: async () => ({ ok: true }),
+    mumbleDownload: async () => ({ ok: true, started: true, downloaded: true }),
+    mumbleInstallPlugin: async () => ({ ok: true, installed: true }),
+    mumbleConfigurePlugin: async () => ({ ok: true }),
     steamLogin: async () => {
       settings = {
         ...settings,
@@ -348,6 +375,8 @@ export function installBrowserDemoBridge(): void {
     sendLiveSkin: async () => {},
     recordCursorKey: async () => null,
     recordDashKey: async () => null,
+    recordVoiceKey: async () => "V",
+    onVoicePtt: () => noop,
     setDashOpen: async () => {},
     onDash: (cb) => delayed(cb, true),
     onCursor: (cb) => delayed(cb, true),
@@ -362,47 +391,6 @@ export function installBrowserDemoBridge(): void {
     radarGetBounds: async () => null,
     radarSetBounds: async () => {},
     onRadarChanged: () => noop,
-    voiceGetSettings: async () => voiceSettings,
-    voiceSetSettings: async (next) => {
-      voiceSettings = { ...voiceSettings, ...next };
-      voiceState = {
-        ...voiceState,
-        phase: voiceSettings.enabled ? "ready" : "disabled",
-        configured: Boolean(voiceSettings.bridgeHost && voiceSettings.apiKey && voiceSettings.mumbleHost),
-      };
-      emitVoice();
-      return voiceSettings;
-    },
-    voiceGetState: async () => voiceState,
-    voicePrepare: async () => voiceState,
-    voiceInstallPlugin: async () => {
-      voiceState = { ...voiceState, installedPluginFound: true, phase: "ready" };
-      emitVoice();
-      return voiceState;
-    },
-    voiceStart: async () => {
-      voiceState = { ...voiceState, running: true, phase: "running", pid: 4242 };
-      emitVoice();
-      return voiceState;
-    },
-    voiceStop: async () => {
-      voiceState = { ...voiceState, running: false, phase: "ready", pid: null };
-      emitVoice();
-      return voiceState;
-    },
-    voiceRecordPttKey: async () => {
-      voiceSettings = { ...voiceSettings, pttKey: "V" };
-      return "V";
-    },
-    voiceOpenPluginFolder: async () => "",
-    onVoiceState: (cb) => {
-      voiceListeners.add(cb);
-      const offInitial = delayed(cb, voiceState);
-      return () => {
-        offInitial();
-        voiceListeners.delete(cb);
-      };
-    },
     updaterRestart: async () => false,
     updaterCheck: async () => false,
     updaterGetState: async () => ({ state: "demo" }),

@@ -568,7 +568,7 @@ export function MainWindow({
             <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
             <path d="M12 7 16 9.5v5L12 17l-4-2.5v-5L12 7Z" fill="currentColor" />
           </svg>
-          <span className="brandName">TheBurntIsle</span>
+          <span className="brandName">Yeti VietNam</span>
           <span className="brandSep">/</span>
           <span className="brandCtx">{TABS.find((t) => t.key === tab)?.label ?? "Tổng quan"}</span>
         </span>
@@ -605,7 +605,7 @@ export function MainWindow({
             <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
             <path d="M12 7 16 9.5v5L12 17l-4-2.5v-5L12 7Z" fill="currentColor" opacity="0.9" />
           </svg>
-          <div className="gateTtl">Đăng nhập TheBurntIsle</div>
+          <div className="gateTtl">Đăng nhập Yeti VietNam</div>
           <div className="gateSub">Đăng nhập bằng Steam để tải chỉ số khủng long, kho, skin và bản đồ trực tiếp.</div>
           <button className="steamBtn" onClick={onLogin}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">

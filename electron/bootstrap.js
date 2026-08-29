@@ -10,4 +10,9 @@ if (process.platform === 'win32') {
   console.log('[HUD bootstrap] Windows transparent-overlay compatibility enabled');
 }
 
-require('./main');
+if (!app.requestSingleInstanceLock()) {
+  console.log('[Launcher bootstrap] Another launcher instance is already running');
+  app.quit();
+} else {
+  require('./main');
+}

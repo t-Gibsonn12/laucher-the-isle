@@ -14,9 +14,11 @@ const DEFINITIONS = [
     id: 'hud',
     name: 'HUD Overlay',
     description: 'HUD nguyên bản từ isle-overlay-main: Stats, Prime, Radar/mini map, dashboard và cài đặt widget.',
-    requiresGame: true,
+    // HUD phải khởi động cùng launcher để F8/F9 và dashboard luôn sẵn sàng.
+    // Các widget gameplay vẫn tự ẩn ngoài phiên chơi nhờ gameplayVisibility của HUD gốc.
+    requiresGame: false,
     builtIn: false,
-    version: '0.4.0-upstream'
+    version: '0.4.1-upstream'
   },
   {
     id: 'voice',

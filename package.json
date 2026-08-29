@@ -1,6 +1,6 @@
 {
   "name": "dino-community-launcher",
-  "version": "0.5.4",
+  "version": "0.5.3",
   "description": "Dino Community desktop launcher for The Isle with a vendored isle-overlay HUD, server query, game monitoring, system tray, module management and automatic updates.",
   "main": "electron/bootstrap.js",
   "scripts": {

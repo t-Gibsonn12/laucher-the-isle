@@ -100,6 +100,18 @@ async function detectInstallation(gameConfig) {
   return { installed: false, steamPath: steamPath || null, installPath: null, executable: null };
 }
 
+function tasklistProcessNames(stdout) {
+  return String(stdout || '')
+    .split(/\r?\n/)
+    .map((line) => line.match(/^"([^"]+)"/)?.[1])
+    .filter(Boolean);
+}
+
+function looksLikeTheIsleClient(name) {
+  const value = String(name || '').toLowerCase();
+  return value.endsWith('.exe') && value.includes('theisle') && !value.includes('server');
+}
+
 async function getRunningProcess(gameConfig) {
   if (process.platform !== 'win32') return { running: false, processName: null };
 
@@ -108,11 +120,18 @@ async function getRunningProcess(gameConfig) {
       windowsHide: true,
       maxBuffer: 2 * 1024 * 1024
     });
-    const lower = stdout.toLowerCase();
+
+    const runningNames = tasklistProcessNames(stdout);
     const configured = Array.isArray(gameConfig.processNames) ? gameConfig.processNames : [];
     const candidates = unique([...configured, ...CURRENT_PROCESS_NAMES]);
-    const processName = candidates.find((name) => lower.includes(`"${String(name).toLowerCase()}"`));
-    return { running: Boolean(processName), processName: processName || null };
+
+    const exact = candidates.find((candidate) =>
+      runningNames.some((running) => running.toLowerCase() === String(candidate).toLowerCase())
+    );
+    const generic = runningNames.find(looksLikeTheIsleClient);
+    const processName = exact || generic || null;
+
+    return { running: Boolean(processName), processName };
   } catch {
     return { running: false, processName: null };
   }
@@ -137,6 +156,7 @@ class GameService {
 
   async emitStatus(options) {
     const status = await this.getStatus(options);
+    this.lastRunning = Boolean(status.running);
     this.onStatus?.(status);
     return status;
   }
@@ -160,4 +180,11 @@ class GameService {
   }
 }
 
-module.exports = { GameService, detectInstallation, getRunningProcess, CURRENT_PROCESS_NAMES };
+module.exports = {
+  GameService,
+  detectInstallation,
+  getRunningProcess,
+  CURRENT_PROCESS_NAMES,
+  tasklistProcessNames,
+  looksLikeTheIsleClient
+};

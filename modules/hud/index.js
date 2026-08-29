@@ -18,7 +18,11 @@ function create({ logger, appRoot, getContext } = {}) {
   let settingsPath = null;
   let keepTopTimer = null;
   let lastGameRunning = null;
+  let rendererMode = 'upstream';
+  let lastRendererHeartbeat = 0;
+  let fallbackRequested = false;
   const registeredHandlers = [];
+  const registeredListeners = [];
 
   const writeConsole = (level, message, data) => {
     const suffix = data ? ` ${JSON.stringify(data)}` : '';
@@ -106,6 +110,11 @@ function create({ logger, appRoot, getContext } = {}) {
       path.join(cwd, '.cache', 'isle-overlay-main', 'dist', 'index.html'),
       path.join(cwd, '..', 'isle-overlay-main', 'dist', 'index.html')
     ].filter(Boolean);
+  }
+
+  function resolveFallbackIndex() {
+    const candidate = path.join(__dirname, 'fallback.html');
+    return fs.existsSync(candidate) ? candidate : null;
   }
 
   function resolveUpstreamIndex() {
@@ -278,6 +287,12 @@ function create({ logger, appRoot, getContext } = {}) {
     registeredHandlers.push(channel);
   }
 
+  function registerListener(channel, handler) {
+    ipcMain.removeAllListeners(channel);
+    ipcMain.on(channel, handler);
+    registeredListeners.push([channel, handler]);
+  }
+
   function registerBridge() {
     registerHandle(`${PREFIX}getSettings`, () => settings);
     registerHandle(`${PREFIX}setSettings`, (_event, next) => saveSettings(next));
@@ -312,10 +327,14 @@ function create({ logger, appRoot, getContext } = {}) {
     registerHandle(`${PREFIX}updaterRestart`, () => false);
     registerHandle(`${PREFIX}updaterCheck`, () => false);
     registerHandle(`${PREFIX}updaterGetState`, () => ({ state: 'launcher-managed' }));
+    registerListener(`${PREFIX}renderer-heartbeat`, () => {
+      lastRendererHeartbeat = Date.now();
+    });
   }
 
   function unregisterBridge() {
     for (const channel of registeredHandlers.splice(0)) ipcMain.removeHandler(channel);
+    for (const [channel, handler] of registeredListeners.splice(0)) ipcMain.removeListener(channel, handler);
   }
 
   function activeDisplay() {
@@ -338,6 +357,23 @@ function create({ logger, appRoot, getContext } = {}) {
   function unregisterHotkeys() {
     globalShortcut.unregister(DASH_HOTKEY);
     globalShortcut.unregister(HIDE_HOTKEY);
+  }
+
+  function switchToFallback(reason) {
+    if (fallbackRequested || rendererMode === 'fallback' || !overlay || overlay.isDestroyed()) return;
+    const fallbackPath = resolveFallbackIndex();
+    if (!fallbackPath) {
+      log.error('Không tìm thấy HUD fallback', { reason });
+      return;
+    }
+
+    fallbackRequested = true;
+    rendererMode = 'fallback';
+    lastRendererHeartbeat = Date.now();
+    log.warn('HUD renderer không phản hồi, chuyển sang chế độ ổn định', { reason, fallbackPath });
+    overlay.loadFile(fallbackPath).catch((error) => {
+      log.error('Không thể mở HUD fallback', { reason, message: error.message, fallbackPath });
+    });
   }
 
   function createOverlayWindow(indexPath) {
@@ -376,6 +412,7 @@ function create({ logger, appRoot, getContext } = {}) {
     });
     overlay.webContents.on('render-process-gone', (_event, details) => {
       log.error('Renderer process gone', details);
+      if (rendererMode === 'upstream') switchToFallback(`renderer-gone:${details?.reason || 'unknown'}`);
     });
     overlay.webContents.on('preload-error', (_event, preloadPath, error) => {
       log.error('Preload failed', { preloadPath, message: error?.message || String(error) });
@@ -396,7 +433,8 @@ function create({ logger, appRoot, getContext } = {}) {
       log.error('loadFile failed', { message: error.message, indexPath });
     });
 
-    overlay.webContents.once('did-finish-load', () => {
+    overlay.webContents.on('did-finish-load', () => {
+      lastRendererHeartbeat = Date.now();
       send('state', stateSnapshot());
       send('auth', { steamId: settings.steamId, authed: true });
       send('settings', settings);
@@ -409,10 +447,17 @@ function create({ logger, appRoot, getContext } = {}) {
         overlay.setAlwaysOnTop(true, 'screen-saver');
         overlay.moveTop();
       }
-      log.info('Đã nạp HUD nguyên bản từ isle-overlay-main', { indexPath, hotkey: DASH_HOTKEY });
+      log.info('Đã nạp HUD renderer', {
+        mode: rendererMode,
+        indexPath: rendererMode === 'fallback' ? resolveFallbackIndex() : indexPath,
+        hotkey: DASH_HOTKEY
+      });
     });
 
-    overlay.on('unresponsive', () => log.warn('Overlay window unresponsive'));
+    overlay.on('unresponsive', () => {
+      log.warn('Overlay window unresponsive', { mode: rendererMode });
+      switchToFallback('unresponsive-event');
+    });
     overlay.on('closed', () => { overlay = null; });
   }
 
@@ -422,6 +467,9 @@ function create({ logger, appRoot, getContext } = {}) {
     if (!overlay.isVisible()) overlay.showInactive();
     overlay.setAlwaysOnTop(true, 'screen-saver');
     overlay.moveTop();
+    if (rendererMode === 'upstream' && Date.now() - lastRendererHeartbeat > 8000) {
+      switchToFallback('renderer-heartbeat-timeout');
+    }
     send('state', stateSnapshot());
     send('live', liveSnapshot());
   }
@@ -438,6 +486,9 @@ function create({ logger, appRoot, getContext } = {}) {
     started = true;
     visible = true;
     dashOpen = false;
+    rendererMode = 'upstream';
+    fallbackRequested = false;
+    lastRendererHeartbeat = Date.now();
     lastGameRunning = isGameRunning(context);
     log.info('Starting HUD module', {
       indexPath,

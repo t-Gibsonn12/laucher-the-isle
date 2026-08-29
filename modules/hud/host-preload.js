@@ -10,6 +10,11 @@ const listen = (name, callback) => {
 };
 const noopListener = () => () => {};
 
+window.addEventListener('DOMContentLoaded', () => {
+  ipcRenderer.send(`${PREFIX}renderer-heartbeat`);
+  window.setInterval(() => ipcRenderer.send(`${PREFIX}renderer-heartbeat`), 1000);
+});
+
 contextBridge.exposeInMainWorld('isleOverlay', {
   getSettings: () => invoke('getSettings'),
   setSettings: (next) => invoke('setSettings', next),

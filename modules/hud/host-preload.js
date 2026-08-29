@@ -34,7 +34,17 @@ contextBridge.exposeInMainWorld('isleOverlay', {
   apiGetFile: (pathname) => invoke('apiGetFile', pathname),
   getMapCatalog: () => invoke('getMapCatalog'),
 
-  onLive: (cb) => listen('live', cb),
+  // The original src treats an explicit hasDino=false live frame as authoritative
+  // and locks gameplay widgets hidden for 12 seconds. Because this launcher keeps
+  // the HUD renderer alive before The Isle starts, sending those idle frames here
+  // caused a guaranteed hide window every time the player entered the game.
+  // Outside The Isle the native foreground guard already hides the whole overlay,
+  // so suppress only the synthetic pre-game false frames. Real/positive frames
+  // still pass through unchanged and immediately trigger the original src checks.
+  onLive: (cb) => listen('live', (frame) => {
+    if (frame?.hasDino === false) return;
+    cb(frame);
+  }),
   onTicket: noopListener,
   onTroll: noopListener,
   onTrollAudio: noopListener,

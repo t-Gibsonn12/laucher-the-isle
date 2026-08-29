@@ -18,6 +18,7 @@ function create({ logger, appRoot, getContext } = {}) {
   let settingsPath = null;
   let keepTopTimer = null;
   let lastGameRunning = null;
+  let rendererRecoveryInProgress = false;
   const registeredHandlers = [];
 
   const writeConsole = (level, message, data) => {
@@ -50,7 +51,7 @@ function create({ logger, appRoot, getContext } = {}) {
       overlayToken: 'dino-launcher-upstream',
       opacity: 1,
       layout: null,
-      panels: { stats: true, prime: true, heart: false, radar: true },
+      panels: { stats: true, prime: true, heart: false, radar: true, voice: true },
       theme: {
         accent: '#7cf2a6',
         stat: { health: '#ff5a5a', stamina: '#35d6a4', food: '#ffb454', water: '#5ab6ff' }
@@ -64,6 +65,12 @@ function create({ logger, appRoot, getContext } = {}) {
       cursorKey: 'Insert',
       cursorMode: 'toggle',
       dashKey: DASH_HOTKEY,
+      voiceEnabled: false,
+      voiceMode: 'push-to-talk',
+      voicePttKey: 'V',
+      voiceInputDeviceId: null,
+      voiceOutputVolume: 0.85,
+      voiceMaxDistance: 80,
       streamerMode: false,
       compatMode: false
     };
@@ -214,6 +221,29 @@ function create({ logger, appRoot, getContext } = {}) {
     return {};
   }
 
+  function mumbleStatus() {
+    return {
+      version: '',
+      installed: false,
+      executable: null,
+      running: false,
+      supported: process.platform === 'win32',
+      plugin: {
+        name: 'Exile Voice - Spatial Audio',
+        version: '0.1.0',
+        sourceCommit: '3345d4707bd6e2a29101c2046fda762010e1a57b',
+        sourceUrl: 'https://github.com/AlinV2V/the-isle-exile-voice',
+        installed: false,
+        bundled: false,
+        configured: false,
+        loaded: false,
+        bridgeConnected: false,
+        bridgeReachable: false,
+        clientIdentified: false
+      }
+    };
+  }
+
   function send(name, payload) {
     if (!overlay || overlay.isDestroyed() || overlay.webContents.isLoading()) return;
     overlay.webContents.send(`${PREFIX}${name}`, payload);
@@ -226,6 +256,12 @@ function create({ logger, appRoot, getContext } = {}) {
   }
 
   function setDashOpen(next) {
+    if (!isGameRunning(context)) {
+      dashOpen = false;
+      log.info(`Dashboard ignored outside The Isle (${DASH_HOTKEY})`);
+      return false;
+    }
+
     dashOpen = Boolean(next);
     if (overlay && !overlay.isDestroyed()) {
       if (dashOpen && !overlay.isVisible()) overlay.showInactive();
@@ -243,14 +279,26 @@ function create({ logger, appRoot, getContext } = {}) {
   }
 
   function toggleDash() {
+    if (!isGameRunning(context)) {
+      dashOpen = false;
+      log.info(`Dashboard ignored outside The Isle (${DASH_HOTKEY})`);
+      return false;
+    }
+
     if (!visible) {
       visible = true;
       overlay?.showInactive();
     }
-    setDashOpen(!dashOpen);
+    return setDashOpen(!dashOpen);
   }
 
   function toggleVisibility() {
+    if (!isGameRunning(context)) {
+      dashOpen = false;
+      log.info(`HUD hotkey ignored outside The Isle (${HIDE_HOTKEY})`);
+      return false;
+    }
+
     visible = !visible;
     dashOpen = false;
     if (!overlay || overlay.isDestroyed()) return visible;
@@ -305,6 +353,15 @@ function create({ logger, appRoot, getContext } = {}) {
     registerHandle(`${PREFIX}voiceStop`, () => ({ phase: 'disabled', running: false, configured: false }));
     registerHandle(`${PREFIX}voiceRecordPttKey`, () => 'V');
     registerHandle(`${PREFIX}voiceOpenPluginFolder`, () => '');
+    // Compatibility bridge for the current original Yeti HUD source. Voice is
+    // reported as unavailable until the launcher-side Mumble runtime is wired,
+    // instead of leaving undefined functions that crash the pink dashboard.
+    registerHandle(`${PREFIX}mumbleGetStatus`, () => mumbleStatus());
+    registerHandle(`${PREFIX}mumbleConnect`, () => ({ ok: false, error: 'Voice runtime is not configured.' }));
+    registerHandle(`${PREFIX}mumbleDownload`, () => ({ ok: false, error: 'Voice runtime is not configured.' }));
+    registerHandle(`${PREFIX}mumbleInstallPlugin`, () => ({ ok: false, error: 'Voice runtime is not configured.' }));
+    registerHandle(`${PREFIX}mumbleConfigurePlugin`, () => ({ ok: false, error: 'Voice runtime is not configured.' }));
+    registerHandle(`${PREFIX}recordVoiceKey`, () => settings.voicePttKey || 'V');
     registerHandle(`${PREFIX}updaterRestart`, () => false);
     registerHandle(`${PREFIX}updaterCheck`, () => false);
     registerHandle(`${PREFIX}updaterGetState`, () => ({ state: 'launcher-managed' }));
@@ -321,6 +378,16 @@ function create({ logger, appRoot, getContext } = {}) {
   function syncBounds() {
     if (!overlay || overlay.isDestroyed()) return;
     overlay.setBounds(activeDisplay().bounds, false);
+  }
+
+  function recoverOriginalRenderer(reason) {
+    if (rendererRecoveryInProgress || !overlay || overlay.isDestroyed()) return;
+    rendererRecoveryInProgress = true;
+    log.warn('Original pink HUD renderer unresponsive; reloading', { reason });
+    overlay.webContents.reloadIgnoringCache();
+    setTimeout(() => {
+      rendererRecoveryInProgress = false;
+    }, 5000);
   }
 
   function registerHotkeys() {
@@ -372,6 +439,7 @@ function create({ logger, appRoot, getContext } = {}) {
     });
     overlay.webContents.on('render-process-gone', (_event, details) => {
       log.error('Original HUD renderer process gone', details);
+      recoverOriginalRenderer(`renderer-${details?.reason || 'gone'}`);
     });
     overlay.webContents.on('preload-error', (_event, preloadPath, error) => {
       log.error('HUD preload failed', { preloadPath, message: error?.message || String(error) });
@@ -393,6 +461,7 @@ function create({ logger, appRoot, getContext } = {}) {
     });
 
     overlay.webContents.on('did-finish-load', () => {
+      rendererRecoveryInProgress = false;
       send('state', stateSnapshot());
       send('auth', { steamId: settings.steamId, authed: true });
       send('settings', settings);
@@ -408,7 +477,7 @@ function create({ logger, appRoot, getContext } = {}) {
       log.info('Loaded ORIGINAL isle-overlay renderer only', { indexPath, hotkey: DASH_HOTKEY });
     });
 
-    overlay.on('unresponsive', () => log.warn('Original overlay window unresponsive'));
+    overlay.on('unresponsive', () => recoverOriginalRenderer('window-unresponsive'));
     overlay.on('closed', () => { overlay = null; });
   }
 

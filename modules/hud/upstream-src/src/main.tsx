@@ -3,6 +3,7 @@ import { App } from "./App";
 import { installBrowserDemoBridge } from "./browserDemo";
 import { OverlayErrorBoundary } from "./OverlayErrorBoundary";
 import { RadarWindow } from "./RadarWindow";
+import { LauncherApp } from "./LauncherApp";
 import { installServerLock } from "./serverLock";
 import { installWidgetAppearance } from "./widgetAppearance";
 import { installGameplayVisibility } from "./gameplayVisibility";
@@ -16,22 +17,29 @@ import "./widgetAppearance.css";
 import "./gameplayVisibility.css";
 import "./yetiIdentity.css";
 import "./overviewWallet.css";
+import "./launcher.css";
 
 installBrowserDemoBridge();
-installWidgetAppearance();
-installGameplayVisibility();
-installYetiIdentity();
-installOverviewWallet();
-installRemovedSkinTab();
-installDashboardClickThrough();
+const route = window.location.hash.replace(/^#/, "");
+const isLauncher = route.startsWith("launcher");
+if (!isLauncher) {
+  installWidgetAppearance();
+  installGameplayVisibility();
+  installYetiIdentity();
+  installOverviewWallet();
+  installRemovedSkinTab();
+  installDashboardClickThrough();
+}
 
 async function bootstrap() {
   await installServerLock();
 
-  const isRadar = window.location.hash.replace(/^#/, "").startsWith("radar");
+  const isRadar = route.startsWith("radar");
 
   createRoot(document.getElementById("root")!).render(
-    <OverlayErrorBoundary>{isRadar ? <RadarWindow /> : <App />}</OverlayErrorBoundary>,
+    <OverlayErrorBoundary>
+      {isLauncher ? <LauncherApp /> : isRadar ? <RadarWindow /> : <App />}
+    </OverlayErrorBoundary>,
   );
 }
 

@@ -8,11 +8,16 @@ if (process.platform === 'win32') {
   app.commandLine.appendSwitch('disable-direct-composition');
   app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
   console.log('[HUD bootstrap] Windows transparent-overlay compatibility enabled');
+}
 
+if (!app.requestSingleInstanceLock()) {
+  console.log('[Launcher bootstrap] Another launcher instance is already running');
+  app.quit();
+} else {
   // Port the upstream Windows focus behavior: the HUD is rendered only while
   // The Isle is the foreground window, and F8 mouse interaction keeps keyboard
   // focus inside the game.
-  require('./hud-focus-guard');
-}
+  if (process.platform === 'win32') require('./hud-focus-guard');
 
-require('./main');
+  require('./main');
+}

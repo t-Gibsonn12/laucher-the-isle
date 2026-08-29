@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { OverlaySettings } from "./preload";
 import { getYetiServerCatalog, selectYetiServer } from "./serverLock";
 import { findYetiServerByUrl } from "./yetiServers";
-import { VoiceSettingsPanel } from "./VoiceSettingsPanel";
 import "./accountSettings.css";
 
 type AccountSettingsProps = {
@@ -112,9 +111,6 @@ export function AccountSettings({
         </div>
       ) : null}
       {serverError ? <div className="accountError">{serverError}</div> : null}
-
-      <div className="secLabel">voice chat</div>
-      <VoiceSettingsPanel />
 
       <div className="secLabel">ứng dụng</div>
       <div className="menuFoot accountQuitRow">

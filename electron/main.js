@@ -55,6 +55,11 @@ function hideMainWindow() {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
 }
 
+app.on('second-instance', () => {
+  if (app.isReady()) showMainWindow();
+  else app.whenReady().then(showMainWindow);
+});
+
 function persistConfig() {
   try {
     configPath = saveConfig(config);

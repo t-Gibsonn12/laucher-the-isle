@@ -8,6 +8,11 @@ if (process.platform === 'win32') {
   app.commandLine.appendSwitch('disable-direct-composition');
   app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
   console.log('[HUD bootstrap] Windows transparent-overlay compatibility enabled');
+
+  // Port the upstream Windows focus behavior: the HUD is rendered only while
+  // The Isle is the foreground window, and F8 mouse interaction keeps keyboard
+  // focus inside the game.
+  require('./hud-focus-guard');
 }
 
 require('./main');

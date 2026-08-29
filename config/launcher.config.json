@@ -1,5 +1,5 @@
 {
-  "configVersion": 4,
+  "configVersion": 5,
   "server": {
     "type": "tie",
     "host": "",
@@ -12,6 +12,7 @@
     "steamAppId": "376210",
     "installDirName": "The Isle",
     "processNames": [
+      "TheIsle-Win64-Shipping.exe",
       "TheIsleClient-Win64-Shipping.exe",
       "TheIsle.exe"
     ],
